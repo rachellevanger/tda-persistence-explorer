@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.dot {
+  /*stroke: #000;*/
+}
+
+.lasso path {
+  stroke: rgb(80,80,80);
+  stroke-width:2px;
+}
+
+.lasso .drawn {
+  fill-opacity:.05 ;
+}
+
+.lasso .loop_close {
+  fill:none;
+  stroke-dasharray: 4,4;
+}
+
+.lasso .origin {
+  fill:#3399FF;
+  fill-opacity:.5;
+}
+
+.not_possible {
+  fill:rgb(200,200,200);
+}
+
+.possible {
+  fill:#EC888C;
+}
+
+.svg {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.divListGens {
+  display: inline-block;
+  vertical-align: top;
+  margin-left: 1em;
+}
+
+
+.img_sub {
+    position: absolute;
+    z-index: -1;
+}
+
+.img_sup {
+    position: absolute;
+    z-index: -1;
+}
+
+
+#slide {
+  font-size: 1.5em;
+}
+
+</style>
+
+
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src = "http://axc.net/code_libraries/lasso/lasso.min.js"></script>
+
+<body>
+
+
+SUBLEVEL PERSISTENCE
+<div id="imgContainer_sub"></div>
+
+<div id="divImg_sub" class="svg"></div>
+
+<div id="applicationArea_sub" class="svg">
+  <!-- The two persistence diagrams are created here -->
+</div>
+
+<br />
+
+SUPERLEVEL PERSISTENCE
+<div id="imgContainer_sup"></div>
+
+<div id="divImg_sup" class="svg"></div>
+
+<div id="applicationArea_sup" class="svg">
+  <!-- The two persistence diagrams are created here -->
+</div>
+
+<p></p>
+<div id="slide" class="svg" ></div>
+<p></p>
+<div id="listGens" class="svg"></div>
+
+<script>
+
+
+// SET PAGE PARAMETERS
+
+var margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = 375 - margin.left - margin.right,
+    height = 375 - margin.top - margin.bottom;
+
+var sizeUnselected = 2;
+var sizeSelected = 4;
+
+var imgDir = "bmp_sublevel";
+var dataDir_sub = "sub_diamorse";
+var dataDir_sup = "sup_diamorse";
+
+var limit1 = 1;
+var limit2 = 144;
+
+// HELPER FUNCTIONS FOR PAGE LOADING
+
+function padnum(n, p, c) {
+    var pad_char = typeof c !== 'undefined' ? c : '0';
+    var pad = new Array(1 + p).join(pad_char);
+    return (pad + n).slice(-pad.length);
+}
+
+// GET/SET PARAMETERS FROM URL
+
+function $_GET(param) {
+  var vars = {};
+  window.location.href.replace( location.hash, '' ).replace( 
+    /[?&]+([^=&]+)=?([^&]*)?/gi, // regexp
+    function( m, key, value ) { // callback
+      vars[key] = value !== undefined ? value : '';
+    }
+  );
+
+  if ( param ) {
+    return vars[param] ? vars[param] : null;  
+  }
+  return vars;
+}
+
+var imgTrail = +$_GET('trail');
+
+if (imgTrail == 0) {
+  imgTrail = 10;
+}
+
+var imgStart = +$_GET('imgStart');
+
+if (imgStart == 0) {
+  alert("Please use ?imgStart=N as parameter input, where "+limit1+" <= N <= "+limit2+" - trail. Defaulting to N="+limit1+".");
+  imgStart = limit1;
+}
+if (imgStart < limit1 || imgStart > limit2 - imgTrail) {
+  alert("Exceeding range of "+limit1+" <= N <= "+limit2+" - trail. Please choose a different N. Setting N="+limit1+".");
+  imgStart = limit1;
+}
+
+var imgs = [];
+for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
+  imgs.push(imgDir + "/"+padnum(i,5)+".bmp");
+}
+
+var listGens = +$_GET('listGens');
+
+var selector = +$_GET('selector');
+// 1 = sub, dim=0
+// 2 = sub, dim=1
+// 3 = sup, dim=0
+// 4 = sup, dim=1
+if (selector == 0) {
+  selector = 1;
+}
+
+
+// SET GLOBAL DATA VARIABLES
+var data_sub=[];
+var data_sup=[];
+
+var files_sub = [];
+for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
+  files_sub.push(dataDir_sub + "/"+padnum(i,5)+"_persistence.csv");
+}
+
+var files_sup = [];
+for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
+  files_sup.push(dataDir_sup + "/"+padnum(i,5)+"_persistence.csv");
+}
+
+
+// PREPROCESSING FUNCTIONS
+
+function loadImgs(_imgs,onComplete) {
+  for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
+
+    if ( i==imgStart ) {
+      d3.select("#imgContainer_sub")
+          .append('img')
+            .attr('src', _imgs[i - imgStart])
+            .attr('id', 'img_sub_'+i)
+            .attr('class', 'img_sub')
+
+      d3.select("#imgContainer_sup")
+          .append('img')
+            .attr('src', _imgs[i - imgStart])
+            .attr('id', 'img_sup_'+i)
+            .attr('class', 'img_sup')
+    } else {
+
+      d3.select("#imgContainer_sub")
+          .append('img')
+            .attr('src', _imgs[i - imgStart])
+            .attr('id', 'img_sub_'+i)
+            .attr('class', 'img_sub')
+
+      d3.select("#imgContainer_sup")
+          .append('img')
+            .attr('src', _imgs[i - imgStart])
+            .attr('id', 'img_sup_'+i)
+            .attr('class', 'img_sup')
+    }
+  }
+
+  onComplete();
+
+}
+
+function loadData(_files, _cb, _data, _i) {
+  _data = _data || [];
+  _i = _i || 0;
+  d3.csv(_files[_i], function(error, dataset) {
+
+    dataset.forEach(function(d) {
+      d.birth = +d.birth;
+      d.death = +d.death;
+      d.time = _i+imgStart;
+    });
+
+    _data = _data.concat(dataset);
+
+    if(_i < _files.length - 1){
+      //load next file
+      loadData(_files, _cb, _data, _i+1);
+    } else {
+      //call the callback with the final sum
+      _cb(_data);
+    }
+  });
+}
+
+
+// ACTUAL PAGE COMMANDS
+
+loadImgs(imgs,function() {
+
+  initializeImageArea();
+
+  var svgImg_sub = d3.select("#divImg_sub").append("svg")
+      .attr("width", width + margin.left + margin.right + 20)
+      .attr("height", height + margin.top + margin.bottom + 50)
+      .attr("id","svgImg_sub")
+
+  var svgImg_sup = d3.select("#divImg_sup").append("svg")
+      .attr("width", width + margin.left + margin.right + 20)
+      .attr("height", height + margin.top + margin.bottom + 50)
+      .attr("id","svgImg_sup")
+
+
+  loadData(files_sub, function(data_sub){
+
+    loadData(files_sup, function(data_sup){
+
+      scatterPlot(data_sub,1);
+      scatterPlot(data_sub,2);
+      scatterPlot(data_sup,3);
+      scatterPlot(data_sup,4);
+
+    });
+
+  });
+
+
+  // ACTIVE PAGE FUNCTIONS
+
+  function scatterPlot( _data, _graphCounter ){
+
+    areaCreator(_graphCounter);
+
+    var x = d3.scale.linear()
+        .range([0, width]);
+
+    var y = d3.scale.linear()
+        .range([height, 0]);
+
+    var color = d3.scale.linear()
+      .domain([imgStart, (imgStart + imgTrail)])
+      .range(["gray", "blue"]);
+
+    var xAxis = d3.svg.axis()
+        .scale(x)
+        .orient("bottom");
+
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left");
+
+    var svg = d3.select("#graphArea"+_graphCounter).append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .attr("class","svg")
+      .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    if ( selector == _graphCounter ) {
+
+      var lasso = lassoFunction(svg);
+
+      function lassoFunction (_svg){
+
+        // Lasso functions to execute while lassoing
+        var lasso_start = function() {
+          lasso.items()
+            .attr("r",sizeUnselected) // reset size
+            .style("fill",null) // clear all of the fills
+            .classed({"not_possible":true,"selected":false}); // style as not possible
+        };
+        var lasso_draw = function() {
+          // Style the possible dots
+          lasso.items().filter(function(d) {return d.possible===true})
+            .classed({"not_possible":false,"possible":true});
+          // Style the not possible dot
+          lasso.items().filter(function(d) {return d.possible===false})
+            .classed({"not_possible":true,"possible":false});
+        };
+        var lasso_end = function() {
+          var selected;
+          // Reset the color of all dots
+          lasso.items()
+             .style("fill", function(d) { return color(d.time); });
+          // Style the selected dots
+          selected=lasso.items().filter(function(d) {return d.selected===true})
+            .classed({"not_possible":false,"possible":false})
+            .attr("r",sizeSelected)
+            .on("click",function(d){
+              menu(d3.mouse(this),_svg);  
+            });
+          // Reset the style of the not selected dots
+          lasso.items().filter(function(d) {return d.selected===false})
+            .classed({"not_possible":false,"possible":false})
+            //.attr("r",3.5);
+            // for (i=0; i<selected[0].length;i++) {
+            //   selectedItems.push(_data[selected[0][i].id.split("_")[1]])
+            // }
+          runAnimation(_data, _graphCounter);
+          if ( listGens==1 ) {
+            listGenerators(_data);
+          }
+
+        };
+
+        // Create the area where the lasso event can be triggered
+        var lasso_area = _svg.append("rect")
+                              .attr("width",width)
+                              .attr("height",height)
+                              .style("opacity",0);
+
+        // Define the lasso
+        var lasso = d3.lasso()
+              .closePathDistance(75) // max distance for the lasso loop to be closed
+              .closePathSelect(true) // can items be selected by closing the path?
+              .hoverSelect(true) // can items by selected by hovering over them?
+              .area(lasso_area) // area where the lasso can be started
+              .on("start",lasso_start) // lasso start function
+              .on("draw",lasso_draw) // lasso draw function
+              .on("end",lasso_end); // lasso end function
+        // Init the lasso on the svg:g that contains the dots
+        _svg.call(lasso);
+        return lasso;
+
+      }
+
+    }
+
+    x.domain(d3.extent(_data, function(d) { return d.birth; })).nice();
+    y.domain(d3.extent(_data, function(d) { return d.death; })).nice();
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis)
+      .append("text")
+        .attr("class", "label")
+        .attr("x", width)
+        .attr("y", -6)
+        .style("text-anchor", "end")
+        .text("birth");
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+      .append("text")
+        .attr("class", "label")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("death")
+    svg.selectAll(".dot")
+        .data(_data.filter(function(d) {return d.dim == ((_graphCounter-1) % 2)}))
+      .enter().append("circle")
+        .attr("id",function(d,i) {return "dot_" + i;}) // added
+        .attr("class", "dot_"+_graphCounter)
+        .attr("r", sizeUnselected)
+        .attr("cx", function(d) { return x(d.birth); })
+        .attr("cy", function(d) { return y(d.death); })
+        .style("fill", function(d) { return color(d.time); });
+    if ( selector == _graphCounter ) {
+      lasso.items(svg.selectAll(".dot_"+_graphCounter));
+    }
+    svg.append("text")
+        .attr("class", "title")
+        .attr("x", width/2)
+        .attr("y", 0 - (margin.top / 2))
+        .attr("text-anchor", "middle")
+        .text("Dim " + ((_graphCounter-1) % 2));
+  }
+
+
+  function imageUpdate( _data, _idx ){
+
+      // Clear the existing data
+      if ( selector <= 2 ) {
+        var svgImg = svgImg_sub;
+      } else {
+        var svgImg = svgImg_sup;
+      }
+
+      svgImg.selectAll("*")
+        .remove();
+
+      // Update new data
+      svgImg.selectAll(".dot")
+          .data(_data.filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
+          .enter()
+        .append("circle")
+          .attr("id",function(d,i) {return "dot_" + i;}) // added
+          .attr("class", "dot_img")
+          .attr("r", 2)
+          .attr("cx", function(d) { return d.b_x; })
+          .attr("cy", function(d) { return d.b_y; })
+          .style("stroke","yellow")
+          .style("fill", 'none');
+
+      svgImg.selectAll(".dot")
+          .data(_data.filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
+          .enter()
+        .append("circle")
+          .attr("id",function(d,i) {return "dot_" + i;}) // added
+          .attr("class", "dot_img")
+          .attr("r", 2)
+          .attr("cx", function(d) { return d.d_x; })
+          .attr("cy", function(d) { return d.d_y; })
+          .style("stroke","yellow")
+          .style("fill", "yellow");
+
+      svgImg.selectAll(".dot")
+          .data(_data.filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
+          .enter()
+        .append("line")
+          .attr("class", "dot_img")
+          .attr("x1", function(d) { return d.b_x; })
+          .attr("y1", function(d) { return d.b_y; })
+          .attr("x2", function(d) { return d.d_x; })
+          .attr("y2", function(d) { return d.d_y; })
+          .style("stroke","yellow");
+
+    }
+
+    // Image area initialization
+    function initializeImageArea () {
+      d3.select("#img_sub_"+imgStart)
+      .attr('style','');
+
+      d3.select("#img_sup_"+imgStart)
+      .attr('style','');
+
+      var svgSlide = d3.select("#slide")
+          .append("text")
+            .attr("id","slideNo")
+            .text("Sample point: " + imgStart);
+
+    }
+
+    //Area Creator
+    function areaCreator (_counter){
+
+      if ( _counter <= 2 ) {
+        d3.select("#applicationArea_sub").append("div")
+                  .attr({
+                    class:"svg",
+                    "id":"graphArea"+_counter
+                  })
+      } else {
+        d3.select("#applicationArea_sup").append("div")
+                  .attr({
+                    class:"svg",
+                    "id":"graphArea"+_counter
+                  })
+      }
+    }
+
+    function runAnimation (_data, _graphCounter) {
+
+      var j = imgStart;
+      var playInterval = setInterval(function() {
+
+        // Update the bitmap images
+        d3.select("#img_sub_"+j)
+          .attr("style","");
+        if (j == imgStart) {
+          for (var i = j+1; i <= imgStart + imgTrail; i++ ) {
+            d3.select("#img_sub_"+(i))
+              .attr("style","display: none");
+          }
+        } else {
+          d3.select("#img_sub_"+j-1)
+            .attr("style","display: none");
+        }
+        d3.select("#img_sup_"+j)
+          .attr("style","");
+        if (j == imgStart) {
+          for (var i = j+1; i <= imgStart + imgTrail; i++ ) {
+            d3.select("#img_sup_"+(i))
+              .attr("style","display: none");
+          }
+        } else {
+          d3.select("#img_sup_"+j-1)
+            .attr("style","display: none");
+        }
+
+        // Update slide number
+        d3.select("#slideNo")
+          .text("Sample point: " + j);
+
+
+        imageUpdate(_data, j);
+        j++;
+        if (j > (imgStart + imgTrail)) {
+          clearInterval(playInterval);
+        }
+      }, 100);
+    };
+
+
+    function listGenerators (_data) {
+
+      // Remove existing table
+      d3.select("#listGens").selectAll("*").remove();
+
+      // Regenerate table
+      for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
+
+        // Generate the column header
+        d3.select("#listGens")
+          .append("div")
+            .attr("id","listGens_"+i)
+            .attr("class","divListGens")
+            .append("div")
+              .attr("id","listGensHeader")
+              .text("Sample point: " +i);
+
+        // Generate the data for the column
+        d3.select("#listGens_"+i).selectAll("genDataPoint")
+            .data(_data.filter(function(d) {return d.time===i & d.selected===true}))
+            .enter()
+            .append("div")
+              .attr("class", "genDataPoint")
+              .text(function(d) { return "( "+d.birth +" , "+d.death+" )"; });
+
+      }
+
+    }
+
+});
+
+
+</script>
+
+
+
+
+</body>
+
+</html>
