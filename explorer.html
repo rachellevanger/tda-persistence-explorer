@@ -13,36 +13,18 @@ body {
   shape-rendering: crispEdges;
 }
 
-.dot {
-  /*stroke: #000;*/
+circle.selected {
+  stroke-width: 1px;
+  stroke: #555;
 }
 
-.lasso path {
-  stroke: rgb(80,80,80);
-  stroke-width:2px;
-}
+path {
+      fill: none;
+      /*fill-opacity: .065;*/
+      stroke-width: 1px;
+      stroke: #666;
+    }
 
-.lasso .drawn {
-  fill-opacity:.05 ;
-}
-
-.lasso .loop_close {
-  fill:none;
-  stroke-dasharray: 4,4;
-}
-
-.lasso .origin {
-  fill:#3399FF;
-  fill-opacity:.5;
-}
-
-.not_possible {
-  fill:rgb(200,200,200);
-}
-
-.possible {
-  fill:#EC888C;
-}
 
 .svg {
   display: inline-block;
@@ -66,6 +48,12 @@ body {
     z-index: -1;
 }
 
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .25;
+  shape-rendering: crispEdges;
+}
+
 
 #slide {
   font-size: 1.5em;
@@ -75,7 +63,8 @@ body {
 
 
     <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script src = "http://axc.net/code_libraries/lasso/lasso.min.js"></script>
+
+
 
 <body>
 
@@ -111,18 +100,21 @@ SUPERLEVEL PERSISTENCE
 // SET PAGE PARAMETERS
 
 var margin = {top: 20, right: 20, bottom: 30, left: 40},
-    width = 375 - margin.left - margin.right,
-    height = 375 - margin.top - margin.bottom;
+    width = 421 - margin.left - margin.right,
+    height = 421 - margin.top - margin.bottom,
+    brushwidth = 421,
+    brushheight = 421;
 
 var sizeUnselected = 2;
 var sizeSelected = 4;
 
-var imgDir = "bmp_sublevel";
-var dataDir_sub = "sub_diamorse";
-var dataDir_sup = "sup_diamorse";
+var img1Dir = "g21per/bmps_cropped";
+var img2Dir = "g21flow/bmps_cropped";
+var dataDir_sub = "g21per/pd_sublevel";
+var dataDir_sup = "g21per/pd_superlevel";
 
 var limit1 = 1;
-var limit2 = 144;
+var limit2 = 1500;
 
 // HELPER FUNCTIONS FOR PAGE LOADING
 
@@ -166,9 +158,13 @@ if (imgStart < limit1 || imgStart > limit2 - imgTrail) {
   imgStart = limit1;
 }
 
-var imgs = [];
+var imgs1 = [];
 for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
-  imgs.push(imgDir + "/"+padnum(i,5)+".bmp");
+  imgs1.push(img1Dir + "/"+padnum(i,5)+".bmp");
+}
+var imgs2 = [];
+for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
+  imgs2.push(img2Dir + "/"+padnum(i,5)+".bmp");
 }
 
 var listGens = +$_GET('listGens');
@@ -183,52 +179,41 @@ if (selector == 0) {
 }
 
 
+
+
 // SET GLOBAL DATA VARIABLES
 var data_sub=[];
 var data_sup=[];
 
 var files_sub = [];
 for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
-  files_sub.push(dataDir_sub + "/"+padnum(i,5)+"_persistence.csv");
+  files_sub.push(dataDir_sub + "/"+padnum(i,5)+"__sub_all.csv");
 }
 
 var files_sup = [];
 for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
-  files_sup.push(dataDir_sup + "/"+padnum(i,5)+"_persistence.csv");
+  files_sup.push(dataDir_sup + "/"+padnum(i,5)+"__super_all.csv");
 }
 
 
 // PREPROCESSING FUNCTIONS
 
-function loadImgs(_imgs,onComplete) {
+function loadImgs(_imgs1, _imgs2,onComplete) {
   for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
 
-    if ( i==imgStart ) {
+
       d3.select("#imgContainer_sub")
           .append('img')
-            .attr('src', _imgs[i - imgStart])
+            .attr('src', _imgs1[i - imgStart])
             .attr('id', 'img_sub_'+i)
             .attr('class', 'img_sub')
 
       d3.select("#imgContainer_sup")
           .append('img')
-            .attr('src', _imgs[i - imgStart])
+            .attr('src', _imgs2[i - imgStart])
             .attr('id', 'img_sup_'+i)
             .attr('class', 'img_sup')
-    } else {
 
-      d3.select("#imgContainer_sub")
-          .append('img')
-            .attr('src', _imgs[i - imgStart])
-            .attr('id', 'img_sub_'+i)
-            .attr('class', 'img_sub')
-
-      d3.select("#imgContainer_sup")
-          .append('img')
-            .attr('src', _imgs[i - imgStart])
-            .attr('id', 'img_sup_'+i)
-            .attr('class', 'img_sup')
-    }
   }
 
   onComplete();
@@ -244,6 +229,7 @@ function loadData(_files, _cb, _data, _i) {
       d.birth = +d.birth;
       d.death = +d.death;
       d.time = _i+imgStart;
+      d.selected = false;
     });
 
     _data = _data.concat(dataset);
@@ -259,31 +245,100 @@ function loadData(_files, _cb, _data, _i) {
 }
 
 
+// Color of the points for reverse search
+var colorInside = d3.scale.linear()
+  .domain([imgStart, (imgStart + imgTrail)])
+  .range(["orange", "red"]);
+var colorOutside = d3.scale.linear()
+  .domain([imgStart, (imgStart + imgTrail)])
+  .range(["gray", "blue"]);
+
+function getColor(_d, _extent) {
+  var b_x = parseFloat(_d.b_x);
+  var b_y = parseFloat(_d.b_y);
+  var d_x = parseFloat(_d.d_x);
+  var d_y = parseFloat(_d.d_y);
+
+  if ( ( _extent[0][0] <= b_x ) && ( b_x <= (_extent[1][0]) ) && ( _extent[0][1] <= b_y ) && ( b_y <= _extent[1][1] )
+    || ( _extent[0][0] <= d_x ) && ( d_x <= (_extent[1][0]) ) && ( _extent[0][1] <= d_y ) && ( d_y <= _extent[1][1] ) ){
+    return colorInside(_d.time);
+  }
+  else{
+    return colorOutside(_d.time);
+  }
+}
+
+function getSize(_d, _extent) {
+  var b_x = parseFloat(_d.b_x);
+  var b_y = parseFloat(_d.b_y);
+  var d_x = parseFloat(_d.d_x);
+  var d_y = parseFloat(_d.d_y);
+
+  if ( ( _extent[0][0] <= b_x ) && ( b_x <= (_extent[1][0]) ) && ( _extent[0][1] <= b_y ) && ( b_y <= _extent[1][1] )
+    || ( _extent[0][0] <= d_x ) && ( d_x <= (_extent[1][0]) ) && ( _extent[0][1] <= d_y ) && ( d_y <= _extent[1][1] ) ){
+    return sizeSelected;
+  }
+  else{
+    return sizeUnselected;
+  }
+}
+
+
 // ACTUAL PAGE COMMANDS
 
-loadImgs(imgs,function() {
+loadImgs(imgs1, imgs2,function() {
 
   initializeImageArea();
 
-  var svgImg_sub = d3.select("#divImg_sub").append("svg")
-      .attr("width", width + margin.left + margin.right + 20)
-      .attr("height", height + margin.top + margin.bottom + 50)
-      .attr("id","svgImg_sub")
+  var svgImg_sub = d3.select("#divImg_sub")
+      .append("svg")
+        .attr("width", width + margin.left + margin.right + 20)
+        .attr("height", height + margin.top + margin.bottom + 20)
+        .attr("id","svgImg_sub")
 
   var svgImg_sup = d3.select("#divImg_sup").append("svg")
       .attr("width", width + margin.left + margin.right + 20)
-      .attr("height", height + margin.top + margin.bottom + 50)
+      .attr("height", height + margin.top + margin.bottom + 20)
       .attr("id","svgImg_sup")
+
 
 
   loadData(files_sub, function(data_sub){
 
     loadData(files_sup, function(data_sup){
 
-      scatterPlot(data_sub,1);
-      scatterPlot(data_sub,2);
-      scatterPlot(data_sup,3);
-      scatterPlot(data_sup,4);
+      // Initialize reverse selector brush (nothing selected)
+      var brush = d3.svg.brush()
+          .x(d3.scale.identity().domain([0, brushwidth]))
+          .y(d3.scale.identity().domain([0, brushheight]))
+          .on("brushend", brushed);
+
+      svgImg_sub.append("g")
+        .attr("class", "brush")
+        .call(brush);
+
+
+      // Generate the four scatter plots.
+      scatterPlot(data_sub,1,brush);
+      scatterPlot(data_sub,2,brush);
+      scatterPlot(data_sup,3,brush);
+      scatterPlot(data_sup,4,brush);
+
+      // Recolor persistence points based on new brush region
+      function brushed() {
+
+        var extent = brush.extent();
+        for (var i=1; i <= 4; i++) {
+          alldots = d3.select("#svg_"+i).selectAll("circle")
+            .style("fill",null) // clear all of the fills
+            .attr("r",sizeUnselected) // clear all of the fills
+          alldots.each(function(d,j) {
+            d3.select(this).style("fill", function(d) { return getColor(d, extent); });
+            d3.select(this).attr("r", function(d) { return getSize(d, extent); });
+          });
+        }
+
+      }
 
     });
 
@@ -292,7 +347,9 @@ loadImgs(imgs,function() {
 
   // ACTIVE PAGE FUNCTIONS
 
-  function scatterPlot( _data, _graphCounter ){
+  function scatterPlot( _data, _graphCounter, _brush ){
+
+    var extent = _brush.extent();
 
     areaCreator(_graphCounter);
 
@@ -301,10 +358,6 @@ loadImgs(imgs,function() {
 
     var y = d3.scale.linear()
         .range([height, 0]);
-
-    var color = d3.scale.linear()
-      .domain([imgStart, (imgStart + imgTrail)])
-      .range(["gray", "blue"]);
 
     var xAxis = d3.svg.axis()
         .scale(x)
@@ -318,82 +371,15 @@ loadImgs(imgs,function() {
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .attr("class","svg")
+        .attr("id","svg_"+_graphCounter)
       .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    if ( selector == _graphCounter ) {
-
-      var lasso = lassoFunction(svg);
-
-      function lassoFunction (_svg){
-
-        // Lasso functions to execute while lassoing
-        var lasso_start = function() {
-          lasso.items()
-            .attr("r",sizeUnselected) // reset size
-            .style("fill",null) // clear all of the fills
-            .classed({"not_possible":true,"selected":false}); // style as not possible
-        };
-        var lasso_draw = function() {
-          // Style the possible dots
-          lasso.items().filter(function(d) {return d.possible===true})
-            .classed({"not_possible":false,"possible":true});
-          // Style the not possible dot
-          lasso.items().filter(function(d) {return d.possible===false})
-            .classed({"not_possible":true,"possible":false});
-        };
-        var lasso_end = function() {
-          var selected;
-          // Reset the color of all dots
-          lasso.items()
-             .style("fill", function(d) { return color(d.time); });
-          // Style the selected dots
-          selected=lasso.items().filter(function(d) {return d.selected===true})
-            .classed({"not_possible":false,"possible":false})
-            .attr("r",sizeSelected)
-            .on("click",function(d){
-              menu(d3.mouse(this),_svg);  
-            });
-          // Reset the style of the not selected dots
-          lasso.items().filter(function(d) {return d.selected===false})
-            .classed({"not_possible":false,"possible":false})
-            //.attr("r",3.5);
-            // for (i=0; i<selected[0].length;i++) {
-            //   selectedItems.push(_data[selected[0][i].id.split("_")[1]])
-            // }
-          runAnimation(_data, _graphCounter);
-          if ( listGens==1 ) {
-            listGenerators(_data);
-          }
-
-        };
-
-        // Create the area where the lasso event can be triggered
-        var lasso_area = _svg.append("rect")
-                              .attr("width",width)
-                              .attr("height",height)
-                              .style("opacity",0);
-
-        // Define the lasso
-        var lasso = d3.lasso()
-              .closePathDistance(75) // max distance for the lasso loop to be closed
-              .closePathSelect(true) // can items be selected by closing the path?
-              .hoverSelect(true) // can items by selected by hovering over them?
-              .area(lasso_area) // area where the lasso can be started
-              .on("start",lasso_start) // lasso start function
-              .on("draw",lasso_draw) // lasso draw function
-              .on("end",lasso_end); // lasso end function
-        // Init the lasso on the svg:g that contains the dots
-        _svg.call(lasso);
-        return lasso;
-
-      }
-
-    }
-
+    // Transforms placement of center of points onto plane (vs absolute coordinates)
     x.domain(d3.extent(_data, function(d) { return d.birth; })).nice();
     y.domain(d3.extent(_data, function(d) { return d.death; })).nice();
 
+    // Style and build the scatter plot
     svg.append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(0," + height + ")")
@@ -414,66 +400,150 @@ loadImgs(imgs,function() {
         .attr("dy", ".71em")
         .style("text-anchor", "end")
         .text("death")
+    // Plot the persistence plane
     svg.selectAll(".dot")
+        // Filter by dimension
         .data(_data.filter(function(d) {return d.dim == ((_graphCounter-1) % 2)}))
       .enter().append("circle")
         .attr("id",function(d,i) {return "dot_" + i;}) // added
         .attr("class", "dot_"+_graphCounter)
-        .attr("r", sizeUnselected)
+        // Center of points
         .attr("cx", function(d) { return x(d.birth); })
         .attr("cy", function(d) { return y(d.death); })
-        .style("fill", function(d) { return color(d.time); });
-    if ( selector == _graphCounter ) {
-      lasso.items(svg.selectAll(".dot_"+_graphCounter));
-    }
+        // Color and size according to time or reverse selection color
+        .style("fill", function(d) { return getColor(d, extent); })
+        .attr("r", function(d) { return getSize(d, extent); });
+
+    // Title of plot
     svg.append("text")
         .attr("class", "title")
         .attr("x", width/2)
         .attr("y", 0 - (margin.top / 2))
         .attr("text-anchor", "middle")
         .text("Dim " + ((_graphCounter-1) % 2));
+
+
+    if ( selector == _graphCounter ) {
+      var coords = [],
+          selecteddata = [],
+
+          line = d3.svg.line(),
+
+          dragStart = function() {
+            coords = [];
+            g.selectAll("path").remove();
+
+          },
+
+          drawPath = function(terminator) {
+            g.append("path").attr({
+              d: line(coords)
+            });
+            if (terminator) {
+              g.select("#terminator").remove();
+              g.append("path").attr({
+                id: "terminator",
+                d: line([coords[0], coords[coords.length-1]])
+              });
+            }
+          },
+
+          dragMove = function() {
+            dot.classed("selected", false);
+            coords.push(d3.mouse(this));
+            dot.each(function(d, i) {
+              d.selected = false;
+              var p_x = parseFloat(d3.select(this).attr("cx"));
+              var p_y = parseFloat(d3.select(this).attr("cy"));
+              point = [p_x + margin.left, p_y + margin.top];
+              if (pointInPolygon(point, coords)) {
+                d3.select(this).classed("selected", true)
+                d.selected = true;
+              }
+            });
+            drawPath();
+          },
+
+          dragEnd = function() {
+            drawPath(true);
+
+            runAnimation(dot);
+            if (listGens) {
+              listGenerators(dot);
+            }
+          }
+
+          drag = d3.behavior.drag()
+                    .on("dragstart", dragStart)
+                    .on("drag", dragMove)
+                    .on("dragend", dragEnd),
+
+          // from https://github.com/substack/point-in-polygon
+          pointInPolygon = function (point, vs) {
+            // ray-casting algorithm based on
+            // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+            var xi, xj, i, intersect,
+                x = point[0],
+                y = point[1],
+                inside = false;
+            for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+              xi = vs[i][0],
+              yi = vs[i][1],
+              xj = vs[j][0],
+              yj = vs[j][1],
+              intersect = ((yi > y) != (yj > y))
+                  && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+              if (intersect) inside = !inside;
+            }
+            return inside;
+          },
+
+
+          mysvg = d3.select("#svg_"+_graphCounter).call(drag),
+
+          dot = d3.selectAll(".dot_"+_graphCounter),
+
+          g = mysvg.append("g")
+            .attr("id","pointselector"+_graphCounter);
+
+    }
+
   }
 
+  function imageUpdate( _data, _idx, _svg ){
 
-  function imageUpdate( _data, _idx ){
-
-      // Clear the existing data
-      if ( selector <= 2 ) {
-        var svgImg = svgImg_sub;
-      } else {
-        var svgImg = svgImg_sup;
-      }
-
-      svgImg.selectAll("*")
+      // Remove previous drawings
+      _svg.selectAll(".dot_img")
         .remove();
 
+
       // Update new data
-      svgImg.selectAll(".dot")
-          .data(_data.filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
+      _svg.selectAll(".dot")
+          .data(_data.data().filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
           .enter()
         .append("circle")
           .attr("id",function(d,i) {return "dot_" + i;}) // added
           .attr("class", "dot_img")
-          .attr("r", 2)
+          .attr("r", 3)
           .attr("cx", function(d) { return d.b_x; })
           .attr("cy", function(d) { return d.b_y; })
-          .style("stroke","yellow")
+          .style("stroke","cyan")
           .style("fill", 'none');
 
-      svgImg.selectAll(".dot")
-          .data(_data.filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
+      _svg.selectAll(".dot")
+          .data(_data.data().filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
           .enter()
         .append("circle")
           .attr("id",function(d,i) {return "dot_" + i;}) // added
           .attr("class", "dot_img")
-          .attr("r", 2)
+          .attr("r", 3)
           .attr("cx", function(d) { return d.d_x; })
           .attr("cy", function(d) { return d.d_y; })
-          .style("stroke","yellow")
-          .style("fill", "yellow");
+          .style("stroke","cyan")
+          .style("fill", "cyan");
 
-      svgImg.selectAll(".dot")
-          .data(_data.filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
+      _svg.selectAll(".dot")
+          .data(_data.data().filter(function(d) {return d.time == _idx & d.dim == ((selector - 1)%2) & d.selected===true}))
           .enter()
         .append("line")
           .attr("class", "dot_img")
@@ -481,7 +551,8 @@ loadImgs(imgs,function() {
           .attr("y1", function(d) { return d.b_y; })
           .attr("x2", function(d) { return d.d_x; })
           .attr("y2", function(d) { return d.d_y; })
-          .style("stroke","yellow");
+          .style("stroke","cyan");
+
 
     }
 
@@ -518,7 +589,7 @@ loadImgs(imgs,function() {
       }
     }
 
-    function runAnimation (_data, _graphCounter) {
+    function runAnimation (_data) {
 
       var j = imgStart;
       var playInterval = setInterval(function() {
@@ -551,13 +622,14 @@ loadImgs(imgs,function() {
         d3.select("#slideNo")
           .text("Sample point: " + j);
 
-
-        imageUpdate(_data, j);
+        // Update the drawings overlaid on the iamge
+        imageUpdate(_data, j, svgImg_sub);
+        imageUpdate(_data, j, svgImg_sup);
         j++;
         if (j > (imgStart + imgTrail)) {
           clearInterval(playInterval);
         }
-      }, 100);
+      }, 250);
     };
 
 
@@ -580,7 +652,7 @@ loadImgs(imgs,function() {
 
         // Generate the data for the column
         d3.select("#listGens_"+i).selectAll("genDataPoint")
-            .data(_data.filter(function(d) {return d.time===i & d.selected===true}))
+            .data(_data.data().filter(function(d) {return d.time===i & d.selected===true}))
             .enter()
             .append("div")
               .attr("class", "genDataPoint")
@@ -589,6 +661,8 @@ loadImgs(imgs,function() {
       }
 
     }
+
+
 
 });
 
