@@ -15,7 +15,7 @@ To get up and running immediately, after cloning the repository, run the followi
 
 If this doesn't work, use your favorite local HTTP server. Then navigate to the following url:
 
-http://localhost:8000/explorer.html?imgStart=1&trail=5&listGens=0&selector=1
+[http://localhost:8000/explorer.html?imgStart=1&trail=5&listGens=0&selector=1]
 
 The arguments in the url give a few parameters used to control the web tool:
 * imgStart = This is the starting index of the tool (1 to 20)
