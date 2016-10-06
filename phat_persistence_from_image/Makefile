@@ -1,5 +1,4 @@
 PROGRAM = 2d_pic_to_bd_matrix
-#PROGRAM = preprocess_image
 
 SRC =
 

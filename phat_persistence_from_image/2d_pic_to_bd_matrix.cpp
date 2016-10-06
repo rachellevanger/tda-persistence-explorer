@@ -1,7 +1,7 @@
 // Code to compute persistence homology using PHAT.
-//Ordered simplices
+// Ordered simplices
 //
-// 2016
+// 2016 Jacek Cyranka
 //
 //
 
