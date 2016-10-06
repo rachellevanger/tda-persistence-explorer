@@ -108,13 +108,13 @@ var margin = {top: 20, right: 20, bottom: 30, left: 40},
 var sizeUnselected = 2;
 var sizeSelected = 4;
 
-var img1Dir = "g21per/bmps_cropped";
-var img2Dir = "g21flow/bmps_cropped";
-var dataDir_sub = "g21per/pd_sublevel";
-var dataDir_sup = "g21per/pd_superlevel";
+var img1Dir = "data/bmp";
+var img2Dir = "data/bmp";
+var dataDir_sub = "data/pd_sub";
+var dataDir_sup = "data/pd_sup";
 
 var limit1 = 1;
-var limit2 = 1500;
+var limit2 = 20;
 
 // HELPER FUNCTIONS FOR PAGE LOADING
 
@@ -144,7 +144,7 @@ function $_GET(param) {
 var imgTrail = +$_GET('trail');
 
 if (imgTrail == 0) {
-  imgTrail = 10;
+  imgTrail = 5;
 }
 
 var imgStart = +$_GET('imgStart');
@@ -164,7 +164,7 @@ for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
 }
 var imgs2 = [];
 for (var i=imgStart; i <= (imgStart + imgTrail); i++) {
-  imgs2.push(img2Dir + "/"+padnum(i,5)+".bmp");
+  imgs2.push(img2Dir + "/"+padnum(i,5)+".bmp"); 
 }
 
 var listGens = +$_GET('listGens');
