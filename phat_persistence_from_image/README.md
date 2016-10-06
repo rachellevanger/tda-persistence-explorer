@@ -2,6 +2,7 @@
 
 SOURCE CODE ORIGINALLY FROM: https://bitbucket.org/dzako/phat_persistence_from_image
 
+Original code by Jacek Cyranka 
 
 The code assumes that phat library is located in `phat` folder in the directory above, where this program is compiled, i.e.
 this is parameter `../phat` in the makefile.
