@@ -3,7 +3,7 @@ PROGRAM = 2d_pic_to_bd_matrix
 
 SRC =
 
-export PREFIX = ../phat
+export PREFIX = ../../phat
 export CXX = g++-4.9
 export CXXOPTS = -O2 -std=c++11  
 
