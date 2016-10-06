@@ -4,8 +4,8 @@ A D3 exploration tool for Topological Data Analysis (TDA). This repository conta
 
 
 Contributors:
-Jacek Cyranka 
-Shaun Harker
+Jacek Cyranka,
+Shaun Harker,
 Rachel Levanger
 
 
