@@ -9,7 +9,7 @@ Shaun Harker,
 Rachel Levanger
 
 
-To get up and running immediately, after cloning the repository, run the following from the command line in the repository directory (assuming you have Python installed):
+To try it out, after cloning the repository, run the following from the command line in the repository directory (assuming you have Python installed):
 
 `python -m SimpleHTTPServer 8000`
 
@@ -24,3 +24,6 @@ The arguments in the url give a few parameters used to control the web tool:
 * selector = Controls which persistence diagram is active for the selection tool. Choose 1 for top left, 2 for top right, 3 for bottom left, and 4 for bottom right.
 
 Once the page loads, on the left you'll see a beautiful picture of simulated convection flows (simulations generously provided by the [Paul Research Group](http://www.me.vt.edu/mpaul/) at Virginia Tech). On the right you'll see both sublevel and superlevel persistence diagrams. Click and drag to circle points on the selected persistence diagram, and when you release, the images will play forward in time with generators corresponding to the encircled persistence points overlaid in cyan. The open circle marks the location of the birth critical cell and the closed circle marks the location of the death critical cell.
+
+To use the tool with your own data, first generate the persistence diagrams with the code contained in `phat_persistence_from_image/`, following the instructions in the README on how to compile and run the software. After your data is generated, you'll have to read the `explorer.html` file and change a whole lotta stuff in order to make it work. We're working on this to make it easeir to use, we promise!!
+
