@@ -17,6 +17,6 @@ computes the boundary matrix of the resulting complex, and computes its persiste
 for example `./2d_pic_to_bd_matrix data.in out sub`, where 
 
  * `data.in` - the input file with vector of pixel values.
- * `out` - the output filename prefix. `out_{sub|super}_H0` will contain H0 generators, `out_{sub|super}_H1` will contain H1 generators, and 'out_{sub|super}_all.csv' will contain both dimensions, including geometric information about the location of the paired critical cells.
+ * `out` - the output filename prefix. `out_{sub|super}_H0` will contain H0 generators, `out_{sub|super}_H1` will contain H1 generators, and `out_{sub|super}_all.csv` will contain both dimensions, including geometric information about the location of the paired critical cells.
  * `{sub|super}` - select if *sub level* filtered complex or *super level* filtered complex is used for homology computation. The complex built for sub level is the *'regular' complex*, whereas the complex built for super level is the *dualized complex*.
 
