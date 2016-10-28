@@ -5,24 +5,25 @@
 
 // Requires: d3
 
-// loadImages(_imagefilenames, _frames)
+// loadImages(_imagefilenames, _frames, _divs)
 //   Inputs:
 //     _imagefilenames : a list of filenames pointing to image data
 //     _frames : a list of frames (corresponding to _imagefilenames indexing) of interest
+//     _divs : the CSS selectors indicating the divs to draw app in
 //   Effects:
 //     Loads the images _imagefilenames[_frames[i]] for 0 <= i < _frames.length.
 //     More specifically, it creates img tags with src files in _imagefilenames 
 //     for the indicated _frames.
-//     It expects there is a "div" named "imgContainer"
-//     It creates an <img> tag inside this div with id "img_#" 
-//     (e.g img_1, img_2,...) for each frame_number in _frames
+//     It expects there is a "div" named "divImg"
+//     It creates an <img> tag inside this div with attribute "frame_number"  
+//     for each frame_number in _frames
 //     and sets its "src" attribute to the filename _imagefilenames[frame_number] 
-function loadImages(_imagefilenames, _frames) {
+function loadImages(_imagefilenames, _frames, _divs) {
   _frames.forEach(function(frame_number){
-      d3.select("#imgContainer")
+      d3.select(_divs.divImg)
           .append('img')
             .attr('src', _imagefilenames[frame_number])
-            .attr('id', 'img_'+frame_number)
+            .attr('frame_number', frame_number)
             .attr('class', 'img')
             .attr("style","display: none");
   });
@@ -47,6 +48,10 @@ function loadPersistenceData(_files, _frames) {
           dataset.forEach(function(d) {
             d.birth = parseInt(d.birth);
             d.death = parseInt(d.death);
+            d.b_x = parseInt(d.b_x);
+            d.b_y = parseInt(d.b_y);
+            d.d_x = parseInt(d.d_x);
+            d.d_y = parseInt(d.d_y);
             d.time = frame_number;
             d.selected = false;
           });
@@ -66,13 +71,8 @@ function loadPersistenceData(_files, _frames) {
 //   Output:
 //     Returns true if either [b_x, b_y] or [d_x, d_y] is in the rectangle _extent
 function isFeatureSelected(_d, _extent) {
-  // TODO: should b_x and friends be pre-parsed? Would this effect other code?
-  var b_x = parseFloat(_d.b_x);
-  var b_y = parseFloat(_d.b_y);
-  var d_x = parseFloat(_d.d_x);
-  var d_y = parseFloat(_d.d_y);
-  return ( ( _extent[0][0] <= b_x ) && ( b_x <= (_extent[1][0]) ) && ( _extent[0][1] <= b_y ) && ( b_y <= _extent[1][1] )
-    || ( _extent[0][0] <= d_x ) && ( d_x <= (_extent[1][0]) ) && ( _extent[0][1] <= d_y ) && ( d_y <= _extent[1][1] ) );
+  return ( ( _extent[0][0] <= _d.b_x ) && ( _d.b_x <= (_extent[1][0]) ) && ( _extent[0][1] <= _d.b_y ) && ( _d.b_y <= _extent[1][1] )
+    || ( _extent[0][0] <= _d.d_x ) && ( _d.d_x <= (_extent[1][0]) ) && ( _extent[0][1] <= _d.d_y ) && ( _d.d_y <= _extent[1][1] ) );
 }
 
 // annotateImageWithFeatures(_data, _frame_number, _svg, _dimension )
@@ -98,7 +98,6 @@ function annotateImageWithFeatures( _data, _frame_number, _svg, _dimension ){
       .data(_data.data().filter(function(d) {return d.time == _frame_number & d.dim == _dimension & d.selected===true}))
       .enter()
     .append("circle")
-      .attr("id",function(d,i) {return "dot_" + i;}) // added
       .attr("class", "dot_img")
       .attr("r", 3)
       .attr("cx", function(d) { return d.b_x; })
@@ -112,7 +111,6 @@ function annotateImageWithFeatures( _data, _frame_number, _svg, _dimension ){
       .data(_data.data().filter(function(d) {return d.time == _frame_number & d.dim == _dimension & d.selected===true}))
       .enter()
     .append("circle")
-      .attr("id",function(d,i) {return "dot_" + i;}) // added
       .attr("class", "dot_img")
       .attr("r", 3)
       .attr("cx", function(d) { return d.d_x; })
@@ -139,10 +137,11 @@ function annotateImageWithFeatures( _data, _frame_number, _svg, _dimension ){
 //     _data : list of all persistence points complete with selection status
 //     _frames : a list of frame numbers (used for animation of images)
 //     _dimension : an integer indicating dimension of persistence diagram of interest
+//     _divs : the CSS selectors indicating the divs to paint animation
 //   Effect:
 //     Plays an animation of the images. Each image frame is annotated with
 //     features selected with reverse selector brush.
-function runImageAnimation (_data, _frames, _dimension) {
+function runImageAnimation (_data, _frames, _dimension, _divs) {
 
   var first_frame = _frames[0];
   var last_frame = _frames[_frames.length-1];
@@ -153,20 +152,20 @@ function runImageAnimation (_data, _frames, _dimension) {
     var current_frame = _frames[frame_index];
 
     // Draw current frame
-    d3.select("#img_"+current_frame)
+    d3.select(_divs.divImg + ">img[frame_number='"+current_frame+"']")
       .attr("style","");
 
     // Clear previous frame
     var previous_frame = (frame_index == 0) ? last_frame : _frames[frame_index-1];
-    d3.select("#img_"+previous_frame)
+    d3.select(_divs.divImg + ">img[frame_number='"+previous_frame+"']")
       .attr("style","display: none");
 
     // Update slide number
-    d3.select("#slideNo")
+    d3.select(_divs.divSlide + ">text")
       .text("Sample point: " + current_frame);
 
     // Update the drawings overlaid on the iamge
-    annotateImageWithFeatures(_data, current_frame, d3.select("#svgImg"), _dimension);
+    annotateImageWithFeatures(_data, current_frame, d3.select(_divs.divImg+">svg"), _dimension);
 
     // Increment frame number
     ++ frame_index;
@@ -222,6 +221,7 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   var height = _display_settings.height;
   var getColor = _display_settings.getColor;
   var getSize = _display_settings.getSize;
+  var divs = _display_settings.divs;
 
   var x = d3.scale.linear()
       .range([0, width]);
@@ -237,12 +237,11 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
       .scale(y)
       .orient("left");
 
-  var svg = d3.select("#divPD")
+  var svg = d3.select(divs.divPD)
       .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .attr("class","svg")
-        .attr("id","svgPD")
         .append("g")
           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -251,7 +250,6 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   y.domain(d3.extent(_data, function(d) { return d.death; })).nice();
 
   // Style and build the persistence diagram
-  console.log("style and build persistence diagram");
   svg.append("g")
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
@@ -273,22 +271,15 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
       .style("text-anchor", "end")
       .text("death");
 
-  console.log("plot PD");
-  console.log(getColor);
-  console.log(getSize);
-  console.log(_display_settings);
   // Plot the persistence plane
   svg.selectAll(".dot_")
      .data(_data.filter(function(d) {return d.dim == _dimension;}))
      .enter().append("circle")
-       .attr("id",function(d,i) {return "dot_" + i;})
        .attr("class", "dot_")
        .attr("cx", function(d) { return x(d.birth); })
        .attr("cy", function(d) { return y(d.death); })
        .style("fill", getColor)
        .attr("r", getSize);
-
-  console.log("title PD");
 
   // Title of plot
   svg.append("text")
@@ -299,12 +290,9 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
       .text("Dim " + _dimension);
 
   // Lasso functionality 
-  console.log("build lasso");
-  var mysvg = d3.select("#svgPD");
-  var dot = d3.selectAll(".dot_");
-  var g = mysvg.append("g")
-               .attr("id","pointselector");
-  console.log("hello?");
+  var mysvg = d3.select(divs.divPD + " svg");
+  var dot = d3.selectAll(divs.divPD + " .dot_");
+  var g = mysvg.append("g");
   // D3 tool for creating SVG lines from coordinate data
   var line = d3.svg.line();
 
@@ -317,9 +305,9 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
       d: line(coords)
     });
     if (terminator) {
-      g.select("#terminator").remove();
+      g.select(".terminator").remove();
       g.append("path").attr({
-        id: "terminator",
+        class: "terminator",
         d: line([coords[0], coords[coords.length-1]])
       });
     }
@@ -335,7 +323,6 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   var dragMove = function() {
     dot.classed("selected", false);
     coords.push(d3.mouse(this));
-    //console.log(coords);
     dot.each(function(d, i) {
       d.selected = false;
       var p_x = parseFloat(d3.select(this).attr("cx"));
@@ -352,10 +339,7 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   // Code executed when lasso dragging ends 
   var dragEnd = function() {
     drawPath(true);
-    runImageAnimation(dot, _frames, _dimension);
-    //if (listGens) {
-    //  listGenerators(dot);
-    //}
+    runImageAnimation(dot, _frames, _dimension, divs);
   };
 
   // D3 behavior encapsularing "dragStart", "dragMove", and "dragEnd":
@@ -379,9 +363,10 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
 //     _imagefiles image files and _persistencefiles  data files which are
 //     indicated in the list of frames _frames. Only persistence points 
 //     of _dimension are considered
-function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension) {
+function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs) {
 
   // Display settings
+  var divs = _divs || { divImg : "#divImg", divPD : "#divPD", divSlide : "#divSlide" };
   var margin = {top: 20, right: 20, bottom: 30, left: 40};
   var width = 421 - margin.left - margin.right;
   var height = 421 - margin.top - margin.bottom;
@@ -404,33 +389,32 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
     width : width,
     height : height,
     getColor : getColor,
-    getSize : getSize
+    getSize : getSize,
+    divs : divs
   };
 
   // Initialize the Image Data
-  loadImages(_imagefiles, _frames);
+  loadImages(_imagefiles, _frames, divs);
 
   // Display first frame
-  d3.select("#img_"+_frames[0])
+  d3.select(divs.divImg + " img[frame_number='"+_frames[0]+"']")
     .attr('style','');
 
   // Create Frame Indicator
-  var svgSlide = d3.select("#slide")
-      .append("text")
-        .attr("id","slideNo")
-        .text("Sample point: " + _frames[0]);
+  d3.select(divs.divSlide)
+    .append("text")
+      .text("Sample point: " + _frames[0]);
 
   // Create SVG to draw image annotations in
-  var svgImg = d3.select("#divImg")
+  var svgImg = d3.select(divs.divImg)
       .append("svg")
         .attr("width", width + margin.left + margin.right + 20)
-        .attr("height", height + margin.top + margin.bottom + 20)
-        .attr("id","svgImg")
+        .attr("height", height + margin.top + margin.bottom + 20);
 
   // Setup callback for reverse selection
   brush.on("brushend", function () {
       // Unselect and unfill all persistence points in diagram
-      alldots = d3.select("#svgPD").selectAll("circle")
+      alldots = d3.select(divs.divPD+">svg").selectAll("circle")
             .style("fill",null)
             .attr("r",sizeUnselected);
       // Redraw persistence points in diagram
