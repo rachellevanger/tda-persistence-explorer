@@ -14,7 +14,7 @@ computes the boundary matrix of the resulting complex, and computes its persiste
 **nondiagonal** generators to files. The parameters are 
 
 `./2d_pic_to_bd_matrix {data_in file name} {output file name} {sub|super}`, 
-for example `./2d_pic_to_bd_matrix data.in out sub`, where 
+for example `./2d_pic_to_bd_matrix data.bmp out sub`, where 
 
  * `data.bmp` - the input image in bmp format.
  * `out` - the output filename prefix. `out_{sub|super}_H0` will contain H0 generators, `out_{sub|super}_H1` will contain H1 generators, and `out_{sub|super}_all.csv` will contain both dimensions, including geometric information about the location of the paired critical cells.
