@@ -82,16 +82,26 @@ public:
       if(s1.dim == s2.dim){
         if(s1.position < s2.position) return true;
         if(s1.position > s2.position) return false;
-        
-        std::cerr << "s1.value==s2.value, s1.dim==s2.dim, s1.position==s2.position, WHICH SHOULDN'T HAPPEN!\n";
-        exit(1);
       }
     }
+    return false;
   }
 
-     
+  friend std::ostream& operator << ( std::ostream & stream, Simplex const& stream_me );
 };
 
+// Stream simplex to output stream
+std::ostream& operator << ( std::ostream & stream, Simplex const& stream_me ) {
+  stream << "{";
+  stream << "'value':" << stream_me.value << ",";
+  stream << "'dim':" << stream_me.dim << ",";
+  stream << "'position':" << stream_me.position << ",";
+  stream << "'globalPos':" << stream_me.globalPos << ",";
+  stream << "'listOfSimplices':" << stream_me.listOfSimplices << ",";
+  stream << "'xCoord':" << stream_me.xCoord << ",";
+  stream << "'yCoord':" << stream_me.yCoord << "}";
+  return stream;
+}
 
 
 
@@ -119,10 +129,10 @@ bool compare_ptrs(const pSimplex &p1, const pSimplex &p2){
 
            
     
-std::ostream& operator<<(std::ostream& os, const Simplex& obj){
-  return os << "(" << obj.value << ", " << obj.dim << ", " << obj.position << ", " << obj.globalPos << ", " << obj.xCoord << ", " << obj.yCoord << ")";
+//std::ostream& operator<<(std::ostream& os, const Simplex& obj){
+//  return os << "(" << obj.value << ", " << obj.dim << ", " << obj.position << ", " << obj.globalPos << ", " << obj.xCoord << ", " << obj.yCoord << ")";
   //return os << "(" << obj.value << ", " << obj.dim << ", " << obj.position << ")";
-}
+//}
 
 
 std::vector<int> read_data(std::vector<int>& xcoords, std::vector<int>& ycoords, std::string input_file_name, std::string output_file_name_prefix, int data_sizes[]){
@@ -533,10 +543,17 @@ int main(int argc, char *argv[])
   }
 
 
+  // DEBUG BEGIN
+  // std::cout << "Size of simplices list = " << simplices . size () << "\n";
+  // for ( int k = 0; k < simplices.size(); ++ k ) {
+  //   std::cout << *simplices[k] << "\n";
+  // }
+  // std::cout << "Debug done.\n";
+  // DEBUG END
+
   std::sort( simplices.begin(), simplices.end(), [](const pSimplex &p1, const pSimplex &p2){
     return *p1 < *p2;
   } );
-
 
   for(int i=0; i < simplices.size(); i++){
     simplices[i]->globalPos = i;

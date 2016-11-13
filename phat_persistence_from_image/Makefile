@@ -3,11 +3,11 @@ PROGRAM = 2d_pic_to_bd_matrix
 SRC =
 
 export PREFIX = ../../phat
-export CXX = g++-4.9
+export CXX = g++
 export CXXOPTS = -O2 -std=c++11  
 
-CXXINC = -I$(PREFIX)/include -I../
-LIBPATHS = -L$(PREFIX) -L/usr/X11R6/lib 
+CXXINC = -I$(PREFIX)/include -I../ -I/opt/X11/include
+LIBPATHS = -L$(PREFIX) -L/usr/X11R6/lib -L/opt/X11/lib
 CXXFLAGS = $(CXXINC) $(CXXOPTS)
 LIBRARIES = -lm -lpthread -lX11
 

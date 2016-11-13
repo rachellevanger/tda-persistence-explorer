@@ -157,9 +157,11 @@ function runImageAnimation (_data, _frames, _dimension, _divs) {
 
     // Clear previous frame
     var previous_frame = (frame_index == 0) ? last_frame : _frames[frame_index-1];
-    d3.select(_divs.divImg + ">img[frame_number='"+previous_frame+"']")
-      .attr("style","display: none");
-
+    if ( previous_frame != current_frame) {
+      // Prevent erasing previous frame in one frame case
+      d3.select(_divs.divImg + ">img[frame_number='"+previous_frame+"']")
+        .attr("style","display: none");
+    }
     // Update slide number
     d3.select(_divs.divSlide + ">text")
       .text("Sample point: " + current_frame);
@@ -243,7 +245,7 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
         .attr("height", height + margin.top + margin.bottom)
         .attr("class","svg")
         .append("g")
-          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+          //.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
   // Transforms placement of center of points onto plane (vs absolute coordinates)
   x.domain(d3.extent(_data, function(d) { return d.birth; })).nice();
@@ -352,12 +354,13 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   mysvg.call(drag);
 }
 
-// PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension)
+// PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs)
 //   Inputs:
 //     _imagefiles : a list of filenames containing image files
 //     _persistencefiles : a list of filenames containing persistence diagram data
 //     _frames : a list of frame numbers (frame indexing corresponds to _imagefiles and _persistencefiles indexing)
 //     _dimension : an integer indicating dimension of persistence diagram of interest
+//     _divs : the CSS selectors indicating the divs to draw app in
 //   Effect:
 //     Creates PersistenceExplorer application examining the frames of the
 //     _imagefiles image files and _persistencefiles  data files which are
