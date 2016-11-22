@@ -47,12 +47,12 @@ std::string help_string =
 //   * `ImageComplex` : implements boundary, coboundary for 2D complex
 //   * `Filtration`   : class for storing filtrations of complexes
 // Functions
-//   * `sublevel_filtration`   : Given an Image object, construct a Filtration object
-//   * `superlevel_filtration` : Given an Image object, construct a Filtration object
-//   * `PersistenceViaPHAT`    : Given a Filtration object and output file, compute persistence
-//                               and write output to file
-//   * `main`                  : Parse command line arguments, create filtration, 
-//                               compute persistence, and write output to file
+//   * `SublevelFiltration`     : Given an Image object, construct a Filtration object
+//   * `SuperlevelFiltration`   : Given an Image object, construct a Filtration object
+//   * `PersistenceViaPHAT`     : Given a Filtration object, compute persistence pairs
+//   * `SavePersistenceResults` : Given Filtration and PersistencePairs, save result to file                              
+//   * `main`                   : Parse command line arguments, create filtration, 
+//                                compute persistence, and write output to file
 
 /// Image
 ///   This class is used to load and access 2D image data
@@ -63,21 +63,18 @@ public:
   Image ( void ) {}
   /// Image
   ///   Load image given image_filename
-  Image ( std::string const& image_filename ) : image_(image_filename.c_str()) {
-    N_ = image_ . width ();
-    M_ = image_ . height ();
-  }
+  Image ( std::string const& image_filename ) : image_(image_filename.c_str()) {}
   /// width
   ///   Return width of image in pixels
   uint64_t
   width ( void ) const {
-    return N_;
+    return image_ . width ();
   }
   /// height
   ///   Return height of image in pixels
   uint64_t
   height ( void ) const {
-    return M_;
+    return image_ . height ();
   }
   /// data
   ///   Given 0 <= x < width() and 0 <= y < height(), 
@@ -87,8 +84,6 @@ public:
     return image_(x,y,0,1);
   }
 private:
-  uint64_t N_;
-  uint64_t M_;
   CImg<unsigned char> image_;
 };
 
@@ -389,7 +384,7 @@ private:
   std::shared_ptr<std::unordered_map<Cell, uint64_t, CellHasher>> cell_indexing_;
 };
 
-/// sublevel_filtration
+/// SublevelFiltration
 ///   Overview:
 ///     Creates a complex and filtration of its cells based on sublevel sets
 ///   Inputs:
@@ -398,7 +393,7 @@ private:
 ///   Outputs:
 ///     a Filtration object
 Filtration
-sublevel_filtration ( Image const& image ) {
+SublevelFiltration ( Image const& image ) {
   // Create N x M full 2D cubical complex
   uint64_t N = image.width();
   uint64_t M = image.height();
@@ -437,7 +432,7 @@ sublevel_filtration ( Image const& image ) {
   return Filtration ( complex, valuation, "ascending" );
 }
 
-/// superlevel_filtration
+/// SuperlevelFiltration
 ///   Overview:
 ///     Creates a complex and filtration of its cells based on superlevel sets
 ///   Inputs:
@@ -446,7 +441,7 @@ sublevel_filtration ( Image const& image ) {
 ///   Outputs:
 ///     a Filtration object
 Filtration
-superlevel_filtration ( Image const& image ) {
+SuperlevelFiltration ( Image const& image ) {
   // Create a (N-1) x (M-1) cubical complex
   uint64_t N = image.width();
   uint64_t M = image.height();
@@ -487,18 +482,11 @@ superlevel_filtration ( Image const& image ) {
 
 /// PersistenceViaPHAT
 ///   Overview:
-///     Given a complex and a cell filtration, compute persistent homology using PHAT
-///     and save to a file. This is a specialized function which assumes the complex
-///     is an "ImageComplex" and saves feature data related to x and y coordinates.
+///     Given a filtration, compute persistent homology using PHAT. 
 ///   Inputs:
-///     complex : a class which provides a "boundary" method so boundary(cell) is a container of boundary cells
-///     cell_filtration : an array of pairs of cells and their "value", sorted by value. 
-///                       The filtration must obey the property that for any k, the first k cells gives
-///                       a closed subcomplex
-///     outfile_name : the name of the file in which to save the results of the calculation
-void
-PersistenceViaPHAT ( Filtration filtration,
-                     std::string const& outfile_name ) {
+///     filtration : A filtration object
+phat::persistence_pairs
+PersistenceViaPHAT ( Filtration const& filtration ) {
   // Get reference to complex
   ImageComplex const& complex = filtration.complex();
 
@@ -524,6 +512,22 @@ PersistenceViaPHAT ( Filtration filtration,
   phat::persistence_pairs pairs;  
   phat::compute_persistence_pairs< phat::twist_reduction >( pairs, boundary_matrix );
 
+  return pairs;
+}
+
+/// SavePersistenceResults
+///   Overview:
+///     Save computed persistence results of a filtration to a file
+///     This is a specialized function which assumes the associated complex
+///     is an "ImageComplex" and saves feature data related to x and y coordinates.
+///   Inputs:
+///     filtration   : a filtration of a complex
+///     pairs        : PHAT output of birth-death cell persistence pairs
+///     outfile_name : the name of the file in which to save the results of the calculation
+void
+SavePersistenceResults ( Filtration const& filtration,
+                         phat::persistence_pairs const& pairs, 
+                         std::string const& outfile_name ) {
   // Output result
   std::ofstream outfile ( outfile_name );
   outfile << "dim,birth,b_x,b_y,b_z,death,d_x,d_y,d_z\n" ;
@@ -548,11 +552,7 @@ PersistenceViaPHAT ( Filtration filtration,
 }
 
 /// main
-///   main routine. 
-///   Usage: ImagePersistence <image_filename> <output_filename> <mode>
-///         <mode> is either 'sub' or 'super'
-///   Computes sub- or super- level persistence on specified <image_filename> and
-///   stores the result in <output_filename>.
+///   Entry point of program
 int main(int argc, char *argv[]) {
   // Check command line arguments
   if ( argc != 4 ) {
@@ -576,11 +576,14 @@ int main(int argc, char *argv[]) {
 
   // Construct filtration, an object that stores an ordering of cells in a complex
   Filtration filtration;
-  if ( mode == "sub" ) filtration = sublevel_filtration(image);
-  if ( mode == "super" ) filtration = superlevel_filtration(image);
+  if ( mode == "sub" ) filtration = SublevelFiltration(image);
+  if ( mode == "super" ) filtration = SuperlevelFiltration(image);
 
   // Compute persistence given filtration
-  PersistenceViaPHAT(filtration, outfile_name);
+  phat::persistence_pairs pairs = PersistenceViaPHAT(filtration);
+
+  // Save results to file
+  SavePersistenceResults ( filtration, pairs, outfile_name );
 
   return 0;
 }
