@@ -27,34 +27,30 @@ for example `./2d_pic_to_bd_matrix data.in out sub`, where
 
 We have put together an interface to the persistent homology computing code "Phat"
 
-We are given an N x M image.
+We are given an N x M image. We want to do "sublevel" and "superlevel" persistence. In both cases we assign pixel data to cells in a particular way and sort the cells according to their values. The filtration is then the nested sequence of subcomplexes given by adding each cell in turn.
 
-## Sublevel sets.
+The guiding principle is that what we want about the filtration is:
 
-We create a cubical complex of dimension 2 with N x M 2-cells.
+(H) For any k, the first k cells in the filtration give a closed subcomplex. 
 
-Each cell is assigned a value:
+In the case of sublevel sets, we start by assigning pixel data to two-cells of a N x M complex and then assign values to lower dimensional cells. Cells are then sorted in ascending order of value. Ties are broken arbitrarily. 
 
-* 2-cells have value from image.
-* 1-cells are assigned a value equal to the min of the values on their coboundary
-* 0-cells are assigned a value equal to the min of the values on their coboundary
+In the superlevel case we start by assigning the pixel data to the vertices of a (N-1) x (M-1) complex and then assign values to higher dimensional cells. Cells are then sorted in descending order of value. Ties are broken arbitrarily. 
 
-We index the cells so that 
-  value(cell1) < value(cells2) -> index(cell1) < index(cell2)
+In both cases we need a means of propagating values onto cells which give the (H) property.
 
-## Superlevel sets.
+When making the filtration in order of ascending values, to get (H) we need to ensure the following two equivalent conditions:
+(1) the value of a cell is greater than or equal to the maximum value on its boundary cells.
+(2) the value of a cell is less than or equal to the minimum value on its coboundary cells.
 
-For superlevel sets we do not only negative the image, but also consider a dualization
-of the cubical complex.
+When making the filtration in order of descending values, to get (H) we need to ensure the following two equivalent conditions:
+(3) the value of a cell is greater than or equal to the minimum value on its boundary cells.
+(4) the value of a cell is less than or equal to the maximum value on its coboundary cells.
 
-We create a cubical complex of dimension 2 with (N-1) x (M-1) 2-cells.
-Note that such a cubical complex has N x M vertices, which can be put in 1-1
-correspondence with the N x M image.
+The implementation is intended to do the following:
 
-Each cell is assigned a value:
+* Sub-level. Two-cells (squares) are initialized with pixel values. By construction we ensure the value of any other cell is the min of the values on its coboundary cells. The cells are then sorted in order of ascending values to obtain a filtration. By (2), the filtration obeys (H). 
+* Super-level. Zero-cells (vertices) are initialized with pixel values. By construction we ensure that the value of any other cell is the min of the values on its boundary. The cells are then sorted in order of descending values to obtain a filtration. By (3), the filtration obeys (H).
 
-* 0-cells are given the value corresponding to the _negated_ image pixels
-* 1-cells are assigned a value equal to the max of the values on their boundary
-* 2-cells are assigned a value equal to the max of the values on their boundary
 
 

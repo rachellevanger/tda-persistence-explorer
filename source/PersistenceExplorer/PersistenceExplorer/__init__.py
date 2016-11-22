@@ -1,1 +1,1 @@
-# python!
+from PersistenceExplorer import *

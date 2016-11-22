@@ -4,6 +4,7 @@ import random
 import string
 import os
 import subprocess
+#import pkgutil
 
 def Execute(command_string, html_string):
   """
@@ -11,9 +12,13 @@ def Execute(command_string, html_string):
     Submits the command to be executed as javascript along with html_string
     D3 and PersistenceExplorer are preloaded if they aren't already
   """
+  #stylesheet = '<style>'  + pkgutil.get_data('PersistenceExplorer', 'PersistenceExplorer.css') + '</style>'
+  #javascript = '<script>' + pkgutil.get_data('PersistenceExplorer', 'PersistenceExplorer.js') + '</script>'
   with open("PersistenceExplorer.css") as f:
     stylesheet = "<style>" + f.read() + "</style>"
-  output = stylesheet + """
+  with open("PersistenceExplorer.js") as f:
+    javascript = "<script>" + f.read() + "</script>"
+  output = stylesheet + javascript + """
     <script>
     var command = function() { 
     """ + command_string + """ };
@@ -29,9 +34,7 @@ def Execute(command_string, html_string):
       }
     };
     LoadSource("//d3js.org/d3.v3.min.js", function() {
-      LoadSource( "./PersistenceExplorer.js", function() {  
-          command();
-      })
+      command();
     });
     </script>
     """ + html_string
@@ -76,7 +79,7 @@ def ProcessImageListWithPHAT( list_of_image_filenames, list_of_output_filenames,
                      sublevel or superlevel set filtrations
   """
   # Run commands in parallel
-  processes = [subprocess.Popen(["./2d_pic_to_bd_matrix", infile, outfile, filtration_type]) for infile, outfile in zip(list_of_image_filenames, list_of_output_filenames) ]
+  processes = [subprocess.Popen(["ImagePersistence", infile, outfile, filtration_type]) for infile, outfile in zip(list_of_image_filenames, list_of_output_filenames) ]
   # Block until processing complete
   exitcodes = [p.wait() for p in processes]
 

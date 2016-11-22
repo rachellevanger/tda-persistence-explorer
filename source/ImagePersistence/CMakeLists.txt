@@ -89,5 +89,5 @@ install(TARGETS ImagePersistence
 # Tests #
 #########
 
-enable_testing()
+#enable_testing()
 
