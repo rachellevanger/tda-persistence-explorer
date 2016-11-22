@@ -34,10 +34,12 @@ path {
 }
 
 
+
 .img {
     position: absolute;
     z-index: -1;
 }
+
 
 .brush .extent {
   stroke: #fff;

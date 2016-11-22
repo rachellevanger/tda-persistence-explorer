@@ -212,13 +212,12 @@ function pointInPolygon (_point, _vs) {
 //     _display_settings : information about display settings
 //   Effect:
 //     Creates a D3-interactive persistence diagram using the provided data.
-//     The _display_settings input is an object containing margin infomration, 
+//     The _display_settings input is an object containing display infomration, 
 //     width, height, and functions getColor and getSize which are used to color 
 //     the points.
 function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings ){
 
   // Pull out information from "_display_settings"
-  var margin = _display_settings.margin;
   var width = _display_settings.width;
   var height = _display_settings.height;
   var getColor = _display_settings.getColor;
@@ -241,11 +240,10 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
 
   var svg = d3.select(divs.divPD)
       .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", width )
+        .attr("height", height )
         .attr("class","svg")
         .append("g")
-          //.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
   // Transforms placement of center of points onto plane (vs absolute coordinates)
   x.domain(d3.extent(_data, function(d) { return d.birth; })).nice();
@@ -287,7 +285,7 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   svg.append("text")
       .attr("class", "title")
       .attr("x", width/2)
-      .attr("y", 0 - (margin.top / 2))
+      .attr("y", 0 )
       .attr("text-anchor", "middle")
       .text("Dim " + _dimension);
 
@@ -329,7 +327,7 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
       d.selected = false;
       var p_x = parseFloat(d3.select(this).attr("cx"));
       var p_y = parseFloat(d3.select(this).attr("cy"));
-      point = [p_x + margin.left, p_y + margin.top];
+      point = [p_x, p_y ];
       if (pointInPolygon(point, coords)) {
         d3.select(this).classed("selected", true)
         d.selected = true;
@@ -370,9 +368,8 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
 
   // Display settings
   var divs = _divs || { divImg : "#divImg", divPD : "#divPD", divSlide : "#divSlide" };
-  var margin = {top: 20, right: 20, bottom: 30, left: 40};
-  var width = 421 - margin.left - margin.right;
-  var height = 421 - margin.top - margin.bottom;
+  var width = 421;
+  var height = 421;
   var brush = d3.svg.brush()
       .x(d3.scale.identity().domain([0, 421]))  // brushwidth
       .y(d3.scale.identity().domain([0, 421])); // brushheight
@@ -388,7 +385,6 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
   var getSize = function(_d) { return isFeatureSelected(_d,brush.extent()) ? sizeSelected : sizeUnselected; };
 
   var display_settings = {
-    margin : margin,
     width : width,
     height : height,
     getColor : getColor,
@@ -411,8 +407,9 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
   // Create SVG to draw image annotations in
   var svgImg = d3.select(divs.divImg)
       .append("svg")
-        .attr("width", width + margin.left + margin.right + 20)
-        .attr("height", height + margin.top + margin.bottom + 20);
+        .attr("width", width )
+        .attr("height", height );
+        //.style("position", "absolute");
 
   // Setup callback for reverse selection
   brush.on("brushend", function () {
