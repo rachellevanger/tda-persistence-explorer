@@ -3,7 +3,7 @@ from setuptools import setup
 setup(name='PersistenceExplorer',
       version='0.1',
       description='Jupyter-Embeddable Persistence Tool',
-      url='',
+      url='https://github.com/rachellevanger/tda-d3-explorer',
       author='Rachel Levanger and Shaun Harker',
       author_email='rachel.levanger@rutgers.edu, shaun.harker@rutgers.edu',
       license='MIT',
@@ -11,5 +11,6 @@ setup(name='PersistenceExplorer',
       install_requires=[
           'IPython'
       ],
-      scripts=['bin/ImagePersistence'],
+      include_package_data=True,
+      scripts=['bin/ImagePersistence'], # includes binary executable
       zip_safe=False)

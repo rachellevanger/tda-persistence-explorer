@@ -4,7 +4,7 @@ import random
 import string
 import os
 import subprocess
-#import pkgutil
+import pkgutil
 
 def Execute(command_string, html_string):
   """
@@ -12,12 +12,8 @@ def Execute(command_string, html_string):
     Submits the command to be executed as javascript along with html_string
     D3 and PersistenceExplorer are preloaded if they aren't already
   """
-  #stylesheet = '<style>'  + pkgutil.get_data('PersistenceExplorer', 'PersistenceExplorer.css') + '</style>'
-  #javascript = '<script>' + pkgutil.get_data('PersistenceExplorer', 'PersistenceExplorer.js') + '</script>'
-  with open("PersistenceExplorer.css") as f:
-    stylesheet = "<style>" + f.read() + "</style>"
-  with open("PersistenceExplorer.js") as f:
-    javascript = "<script>" + f.read() + "</script>"
+  stylesheet = '<style>'  + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.css') + '</style>'
+  javascript = '<script>' + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.js') + '</script>'
   output = stylesheet + javascript + """
     <script>
     var command = function() { 
@@ -92,7 +88,7 @@ def ProcessImageFolderWithPHAT( image_foldername, sub_foldername=None, sup_folde
     sub_foldername: path to put sublevel persistence results (defaults to image_foldername/sup)
   """
   list_of_image_filenames = [filename for filename in os.listdir(image_foldername) if os.path.isfile(os.path.join(image_foldername,filename)) and not filename.endswith('.md') and not filename.endswith('.txt') ]
-  list_of_output_filenames = [os.path.splitext(filename)[0] for filename in list_of_image_filenames]
+  list_of_output_filenames = [os.path.splitext(filename)[0]+'.csv' for filename in list_of_image_filenames]
   if sub_foldername is None:
     sub_foldername = image_foldername + "/pd_sub"
   if sup_foldername is None:

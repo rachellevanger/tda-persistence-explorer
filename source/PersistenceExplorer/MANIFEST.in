@@ -1,2 +1,2 @@
-include PersistenceExplorer.js
-include PersistenceExplorer.css
+include PersistenceExplorer/WebApp/PersistenceExplorer.js
+include PersistenceExplorer/WebApp/PersistenceExplorer.css
