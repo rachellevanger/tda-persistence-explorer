@@ -66,7 +66,7 @@ def PersistenceExplorer( imagefiles, persistencefiles, frames, dimension ):
   # Display the HTML
   return Execute(command_string, html_string)
 
-def ProcessImageListWithPHAT( list_of_image_filenames, list_of_output_filenames, filtration_type ):
+def ProcessImageListWithPHAT( list_of_image_filenames, list_of_output_filenames, filtration_type, cores=8 ):
   """
   Iterate through images, compute persistence results, and store results.
     list_of_image_filenames: a list of image files
@@ -74,10 +74,17 @@ def ProcessImageListWithPHAT( list_of_image_filenames, list_of_output_filenames,
     filtration_type: either "sub" or "super" to indicate to obtain persistence results for either
                      sublevel or superlevel set filtrations
   """
+  def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+  cohorts_of_image_filenames = chunks(list_of_image_filenames, cores)
+  cohorts_of_output_filenames = chunks(list_of_output_filenames, cores)
   # Run commands in parallel
-  processes = [subprocess.Popen(["ImagePersistence", infile, outfile, filtration_type]) for infile, outfile in zip(list_of_image_filenames, list_of_output_filenames) ]
-  # Block until processing complete
-  exitcodes = [p.wait() for p in processes]
+  for images,outputs in zip(cohorts_of_image_filenames, cohorts_of_output_filenames):
+    processes = [subprocess.Popen(["ImagePersistence", infile, outfile, filtration_type]) for infile, outfile in zip(images, outputs) ]
+    # Block until processing complete
+    exitcodes = [p.wait() for p in processes]
 
 
 def ProcessImageFolderWithPHAT( image_foldername, sub_foldername=None, sup_foldername=None ):
