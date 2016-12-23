@@ -1,31 +1,26 @@
-# README #
+# ImagePersistence
+
+Jacek Cyranka, Shaun Harker
+
+ImagePersistence.cpp is a C++ program which uses the image library CImg to load 2D images, create sublevel of superlevel filtered complexes, and compute persistence using PHAT. It saves the output to file. 
+
+Installation is accomplished by typing
+
+    ./install.sh
 
 
-# SOURCE CODE ORIGINALLY FROM: https://bitbucket.org/dzako/phat_persistence_from_image
+This creates a command-line program `ImagePersistence` with the following usage:
 
-Original code by Jacek Cyranka 
+```
+  Usage: ImagePersistence <image_filename> <output_filename> <mode>
+   <image_filename>  : input image filename
+   <output_filename> : output filename (a CSV file)
+   <mode>            : A mode of execution (either "sub" or "super") 
+                       to indicate whether to compute
+                       sublevel or superlevel persistence.
+```
 
-The code assumes that phat library is located in `phat` folder in the directory above, where this program is compiled, i.e.
-this is parameter `../../phat` in the makefile.
-
-1. PROGRAM '2d_pic_to_bd_matrix.cpp'
-
-computes a cubical complex using PHAT library for persistence, it builds a complex with a prescribed ordering of cells,
-computes the boundary matrix of the resulting complex, and computes its persistence using PHAT, and ouputs H0 and H1 
-**nondiagonal** generators to files. The parameters are 
-
-`./2d_pic_to_bd_matrix {data_in file name} {output file name} {sub|super}`, 
-for example `./2d_pic_to_bd_matrix data.in out sub`, where 
-
- * `data.in` - the input file with vector of pixel values.
- * `out` - the output filename prefix. `out_{sub|super}_H0` will contain H0 generators, `out_{sub|super}_H1` will contain H1 generators, and `out_{sub|super}_all.csv` will contain both dimensions, including geometric information about the location of the paired critical cells.
- * `{sub|super}` - select if *sub level* filtered complex or *super level* filtered complex is used for homology computation. The complex built for sub level is the *'regular' complex*, whereas the complex built for super level is the *dualized complex*.
-
-
-
-## Details
-
-We have put together an interface to the persistent homology computing code "Phat"
+## Implementation Details
 
 We are given an N x M image. We want to do "sublevel" and "superlevel" persistence. In both cases we assign pixel data to cells in a particular way and sort the cells according to their values. The filtration is then the nested sequence of subcomplexes given by adding each cell in turn.
 

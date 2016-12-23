@@ -552,7 +552,12 @@ SavePersistenceResults ( Filtration const& filtration,
 }
 
 /// main
-///   Entry point of program
+///  Usage: ImagePersistence <image_filename> <output_filename> <mode>
+///   <image_filename>  : input image filename
+///   <output_filename> : output filename (a CSV file)
+///   <mode>            : A mode of execution (either "sub" or "super")
+///                       to indicate whether to compute
+///                       sublevel or superlevel persistence.
 int main(int argc, char *argv[]) {
   // Check command line arguments
   if ( argc != 4 ) {
