@@ -16,10 +16,10 @@
 #include <cmath>
 
 // PHAT include files
-#include "phat/representations/vector_vector.h"
-#include <phat/algorithms/standard_reduction.h>
-#include <phat/algorithms/twist_reduction.h>
-#include <phat/compute_persistence_pairs.h>
+#include "../phat/representations/vector_vector.h"
+#include "../phat/algorithms/standard_reduction.h"
+#include "../phat/algorithms/twist_reduction.h"
+#include "../phat/compute_persistence_pairs.h"
 #include "CImg.h"
 
 using namespace cimg_library;
@@ -476,6 +476,7 @@ int main(int argc, char *argv[])
   const int data_size_x_ = image . width( ),
             data_size_y_ = image . height( ) ;
 
+
   data_sizes[0] = data_size_x_;
   data_sizes[1] = data_size_y_;
 
@@ -494,7 +495,7 @@ int main(int argc, char *argv[])
   if( suborsuper == sub ){
     int Nvert = (data_sizes[0] + 1) * (data_sizes[1] + 1);
     int NedgesH = ( (data_sizes[0] ) * (data_sizes[1] + 1) );
-    int NedgesV = ( (data_sizes[0] ) * (data_sizes[1] + 1) );
+    int NedgesV = ( (data_sizes[0] + 1 ) * (data_sizes[1] ) );
     int Ncubes = pixels.size();
 
     simplices.resize( Nvert + NedgesH + NedgesV + Ncubes );
@@ -514,7 +515,7 @@ int main(int argc, char *argv[])
   if( suborsuper == super ){
 
     int Nvert = (data_sizes[0]) * (data_sizes[1]);
-    int NedgesH = ( (data_sizes[0] - 1 ) * ( data_sizes[1] ) );
+    int NedgesH = ( (data_sizes[0] ) * ( data_sizes[1] - 1 ) );
     int NedgesV = ( (data_sizes[0] - 1 ) * ( data_sizes[1] ) );
     int Ncubes = ( data_sizes[0] - 1 ) * ( data_sizes[1] - 1 );
 
