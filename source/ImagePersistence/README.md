@@ -2,7 +2,7 @@
 
 Jacek Cyranka, Shaun Harker
 
-ImagePersistence.cpp is a C++ program which uses the image library CImg to load 2D images, create sublevel of superlevel filtered complexes, and compute persistence using PHAT. It saves the output to file. 
+ImagePersistence.cpp is a C++ program which uses the image library CImg to load 2D images, create sublevel or superlevel filtered complexes, and compute persistence using PHAT. It saves the output to file. 
 
 Installation is accomplished by typing
 
@@ -19,6 +19,8 @@ This creates a command-line program `ImagePersistence` with the following usage:
                        to indicate whether to compute
                        sublevel or superlevel persistence.
 ```
+
+**TODO: Explain input and output formats.**
 
 ## Implementation Details
 

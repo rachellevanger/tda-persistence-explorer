@@ -1,32 +1,29 @@
-# README #
+# DataPersistence
 
-DataPersistence
+Jacek Cyranka, Shaun Harker
 
-# SOURCE CODE ORIGINALLY FROM: https://bitbucket.org/dzako/phat_persistence_from_image
+DataPersistence.cpp is a C++ program which loads a data file containing data from which sublevel or superlevel filtered complexes can be created. Persistent homology is then computed using PHAT. The output is then saved to file. 
 
-Original code by Jacek Cyranka 
+Installation is accomplished by typing
 
-The code assumes that phat library is located in `phat` folder in the directory above, where this program is compiled, i.e.
-this is parameter `../../phat` in the makefile.
-
-1. PROGRAM '2d_pic_to_bd_matrix.cpp'
-
-computes a cubical complex using PHAT library for persistence, it builds a complex with a prescribed ordering of cells,
-computes the boundary matrix of the resulting complex, and computes its persistence using PHAT, and ouputs H0 and H1 
-**nondiagonal** generators to files. The parameters are 
-
-`./2d_pic_to_bd_matrix {data_in file name} {output file name} {sub|super}`, 
-for example `./2d_pic_to_bd_matrix data.in out sub`, where 
-
- * `data.in` - the input file with vector of pixel values.
- * `out` - the output filename prefix. `out_{sub|super}_H0` will contain H0 generators, `out_{sub|super}_H1` will contain H1 generators, and `out_{sub|super}_all.csv` will contain both dimensions, including geometric information about the location of the paired critical cells.
- * `{sub|super}` - select if *sub level* filtered complex or *super level* filtered complex is used for homology computation. The complex built for sub level is the *'regular' complex*, whereas the complex built for super level is the *dualized complex*.
+    ./install.sh
 
 
+This creates a command-line program `DataPersistence` with the following usage:
 
-## Details
+```
+  Usage: DataPersistence <image_filename> <output_filename> <mode>
+   <input_filename>  : input data filename
+   <output_filename> : output filename (a CSV file)
+   <mode>            : A mode of execution (either "sub" or "super") 
+                       to indicate whether to compute
+                       sublevel or superlevel persistence.
+```
 
-We have put together an interface to the persistent homology computing code "Phat"
+**TODO: Explain input and output formats.**
+
+
+## Implementation Details
 
 We are given an N x M image. We want to do "sublevel" and "superlevel" persistence. In both cases we assign pixel data to cells in a particular way and sort the cells according to their values. The filtration is then the nested sequence of subcomplexes given by adding each cell in turn.
 
