@@ -1,0 +1,93 @@
+cmake_minimum_required (VERSION 2.6) 
+project (DataPersistence) 
+
+#########
+# rpath #
+#########
+
+set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_SKIP_BUILD_RPATH  FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+if("${isSystemDir}" STREQUAL "-1")
+   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif("${isSystemDir}" STREQUAL "-1")
+
+#########
+# Flags #
+#########
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ftemplate-depth=2048")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -fprofile-arcs -ftest-coverage")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG" )
+
+############
+# Packages #
+############
+
+find_package(Boost 1.58.0 REQUIRED COMPONENTS chrono system thread serialization)
+find_package(Threads)
+
+# The next line fixes an issue with Anaconda interfering with X11
+# on Mac OS X. It causes the system to check the usual install path first.
+# Otherwise, it tries to use the X11 in Anaconda which is not suitable.
+set(CMAKE_INCLUDE_PATH "/opt/X11/include;${CMAKE_INCLUDE_PATH}")
+find_package(X11 REQUIRED)
+
+#######################
+# Include Directories #
+#######################
+
+include_directories ( 
+  ${CMAKE_SOURCE_DIR}/include
+  /usr/local/include 
+  /opt/local/include 
+  ${Boost_INCLUDE_DIRS} 
+  ${USER_INCLUDE_PATH} 
+  ${X11_INCLUDE_DIR} 
+  )
+
+#######################
+# Library Directories #
+#######################
+
+link_directories ( 
+  ${USER_LIBRARY_PATH} 
+  /usr/local/lib 
+  /opt/local/lib )
+
+###########
+# Outputs #
+###########
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+###########
+# Recurse #
+###########
+
+# add the executable
+
+set ( LIBS      ${LIBS}
+                ${X11_LIBRARIES}
+                ${CMAKE_THREAD_LIBS_INIT}
+                ${Boost_LIBRARIES} )
+
+add_executable ( DataPersistence DataPersistence.cpp )
+target_link_libraries ( DataPersistence ${LIBS} )
+
+install(TARGETS ImagePersistence
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
+
+#########
+# Tests #
+#########
+
+#enable_testing()
+

@@ -1,13 +1,20 @@
-// ImagePersistence.cpp
-//  Compute persistence homology of 2D images using PHAT.
-//  MIT LICENSE 2016 Jacek Cyranka
+// DataPersistence.cpp
+//  Compute persistent homology of multidimensional array data using PHAT.
+//  MIT LICENSE 2016 Jacek Cyranka, Shaun Harker
 // 
 // Revision History:
 //   2016-11-21 Shaun Harker 
 //      * refactored
 //      * fixed non-square image bug 
 //      * improved make system
+//   2016-12-15 Shaun Harker
+//      * generalized to higher dimensions
 
+// USE FLOATING POINT DATA
+// x y z value \n FORMAT
+// DON'T ASSUME SORTED PROPERLY.
+
+#include <memory>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -23,11 +30,13 @@
 #include <phat/compute_persistence_pairs.h>
 #include "CImg.h"
 
+#include <stdint.h>
+
 using namespace cimg_library;
 
 std::string help_string = 
-" Usage: ImagePersistence <image_filename> <output_filename> <mode> \n"
-"   <image_filename>  : input image filename \n"
+" Usage: ImagePersistence <input_filename> <output_filename> <mode> \n"
+"   <input_filename>  : input filename \n"
 "   <output_filename> : output filename (a CSV file)\n"
 "   <mode>            : A mode of execution (either \"sub\" or \"super\") \n"
 "                       to indicate whether to compute\n"
@@ -35,278 +44,95 @@ std::string help_string =
 
 
 // Overview:
-//  1. The input filename is loaded into an "Image" object
+//  1. The input filename is loaded into a "Data" object
 //  2. Based on "mode", either a sublevel or superlevel filtration is constructed.
 //  3. Persistence is calculated for the filtration
 //  4. Results are saved to the requested output file.
 
 // Implementation overview:
 // Classes
-//   * `Image`        : class for loading and accessing image data
-//   * `Cell`         : data type for cell in 2D complex
-//   * `ImageComplex` : implements boundary, coboundary for 2D complex
+//   * `Data`        : class for loading and accessing multidimensional data
 //   * `Filtration`   : class for storing filtrations of complexes
 // Functions
-//   * `SublevelFiltration`     : Given an Image object, construct a Filtration object
-//   * `SuperlevelFiltration`   : Given an Image object, construct a Filtration object
+//   * `SublevelFiltration`     : Given an Data object, construct a Filtration object
+//   * `SuperlevelFiltration`   : Given an Data object, construct a Filtration object
 //   * `PersistenceViaPHAT`     : Given a Filtration object, compute persistence pairs
 //   * `SavePersistenceResults` : Given Filtration and PersistencePairs, save result to file                              
 //   * `main`                   : Parse command line arguments, create filtration, 
 //                                compute persistence, and write output to file
 
-/// Image
-///   This class is used to load and access 2D image data
-class Image {
+/// Data
+///   This class is used to load and access data
+class Data {
 public:
-  /// Image
+  /// Data
   ///   Default constructor
-  Image ( void ) {}
-  /// Image
-  ///   Load image given image_filename
-  Image ( std::string const& image_filename ) : image_(image_filename.c_str()) {}
-  /// width
-  ///   Return width of image in pixels
-  uint64_t
-  width ( void ) const {
-    return image_ . width ();
+  Data ( void ) {}
+
+  /// Data
+  ///   Construct Data object from file.
+  ///   Notes: If the filename extension looks like an image, it uses CImg to load.
+  ///          Otherwise, it uses the `loadData` method
+  Data ( std::string const& input_filename ) {
+    const auto list_of_image_extensions = { "png", "bmp", "jpeg", "jpg", "gif" };
+    // Get filename extension (part after last ".")
+    auto ext = input_filename.substr(fn.find_last_of(".") + 1);
+    // We check if `ext` is in `list_of_image_extensions`
+    // C++ has atrocious semantics for this:
+    auto begin = list_of_image_extensions.begin();
+    auto end = list_of_image_extensions.end();
+    bool input_file_is_an_image = std::find(begin, end, ext) != end;
+    // Has an image extension
+    if ( input_file_is_an_image ) {
+      loadImage(input_filename);
+    } else {
+      loadData(input_filename);
+    }
   }
-  /// height
-  ///   Return height of image in pixels
-  uint64_t
-  height ( void ) const {
-    return image_ . height ();
+
+  /// loadImage
+  ///   Load image given image_filename
+  void
+  loadImage ( std::string const& image_filename ) { 
+    auto image = std::make_shared<CImg<unsigned char>> (image_filename.c_str());
+    resolution_ . resize ( 2 );
+    resolution_[0] = image -> width();
+    resolution_[1] = image -> height();   
+    data_ = [=](std::vector<uint64_t> const& coordinates) {return (*image)(coordinates[0],coordinates[1],0,1);} 
+  }
+
+  /// loadData
+  ///   Load data given data_filename
+  void
+  loadData ( std::string const& data_filename ) { 
+    uint64_t dimension = 0;
+    // TODO: get input dimension
+    resolution_ . resize ( dimension );
+    // TODO: set resolution_[d] for d = 0,1,...,D-1
+    // TODO: load data from file and put it in a structure wrapped in a 
+    //       shared pointer (use std::make_shared) and capture it in the
+    //       following lambda
+    data_ = [=](std::vector<uint64_t> const& coordinates) {return 0;}
+  }
+  /// resolution
+  ///   Give extent of data in each dimension
+  ///   i.e.  0 <= x_i < resolution()[i] for i = 0 ... D-1
+  std::vector<uint64_t>
+  resolution ( void ) const {
+    return resolution_;
   }
   /// data
   ///   Given 0 <= x < width() and 0 <= y < height(), 
   ///   return pixel data at position (x,y)
   uint64_t
-  data ( uint64_t x, uint64_t y ) const {
-    return image_(x,y,0,1);
+  data ( std::vector<uint64_t> const& coordinates ) const {
+    return data_(coordinates);
   }
 private:
-  CImg<unsigned char> image_;
+  std::function<uint64_t(std::vector<uint64_t>const&)> data_;
+  std::vector<uint64_t> resolution_;
 };
 
-/// Cell
-///   Represents a 0, 1, or 2D cell in a 2D cubical complex
-///   A cell is represented as a triple (x,y,type),
-///      x : x-coordinate 0 <= x <= N
-///      y : y-coordinate 0 <= x <= M
-///   type : either 0,1,2,3 which when written as a two-bit binary 
-///          number gives the shape of the cell:
-///          As in the following diagram:
-///           |
-///          (10)    (11)
-///           |               (types of 0, 1, 2, 3 written in binary as 00, 01, 10, 11)
-///           |
-///          (00) ---(01)----
-///         Type 0 is vertices, Type 1 is Horizontal Edges, Type 2 is Vertical Edges, Type 3 is 2-cells
-///   The positioning of a vertex at position (x,y) is understood to be at the lower-left corner of the (x,y) pixel
-///   The positioning of a horizontal edge at position (x,y) is understood to be the bottom side of the (x,y) pixel
-///   The positioning of a vertical edge at position (x,y) is understood to be the left side of the (x,y) pixel
-///   Due to these conventions, for an (N,M) image we note the following:
-///     2-cells will have (x,y) values satisfying            0 <= x < N,  0 <= y < M
-///     Horizontal 1-cells will have (x,y) values satisfying 0 <= x < N,  0 <= y <= M
-///     Vertical 1-cells will have (x,y) values satisfying   0 <= x <= N, 0 <= y < M
-///     Vertices (0-cells) will have (x,y) values satisfying 0 <= x <= N, 0 <= y <= M
-class Cell {
-public:
-  /// Cell
-  ///   Default constructor
-  Cell ( void ) {}
-  /// Cell
-  ///   Construct a cell with given position and type
-  Cell ( uint64_t x, uint64_t y, uint64_t type ) : x_(x), y_(y), type_(type) {}
-  /// dimension
-  ///   Return dimension of cell
-  uint64_t
-  dimension ( void ) const {
-    uint64_t result;
-    switch ( type_ ) {
-      case 0: result = 0; break; // vertex
-      case 1: result = 1; break; // horizontal edge
-      case 2: result = 1; break; // vertical edge
-      case 3: result = 2; break; // 2-cell
-      default: throw std::runtime_error("Invalid cell type");
-    }
-    return result;
-  }
-  /// x
-  ///  Return x coordinate
-  uint64_t
-  x ( void ) const {
-    return x_;
-  }
-  /// y
-  ///  Return y coordinate
-  uint64_t
-  y ( void ) const {
-    return y_;
-  }
-  /// type
-  ///   Return type  ( 0 = vertex, 1 = horizontal 1-cell, 2 = vertical 1-cell, 3 = 2-cell )
-  uint64_t
-  type ( void ) const {
-    return type_;
-  }
-  /// has_horizontal_extent
-  ///   Return true if cell is a 1-cell with width in x-dimension
-  ///   or if it is a two-cell
-  bool 
-  has_horizontal_extent (void) const {
-    return type_ & 1;
-  }
-  /// has vertical_extent
-  ///   Return true if cell is a 1-cell with height in y-dimension
-  ///   or if it is a two-cell
-  bool 
-  has_vertical_extent (void) const {
-    return type_ & 2;
-  }
-  /// operator ==
-  ///   Returns true if (x, y, type) of two cells are all the same
-  bool
-  operator == ( Cell const& rhs ) const {
-    if ( x() != rhs.x() ) return false;
-    if ( y() != rhs.y() ) return false;
-    if ( type() != rhs.type() ) return false;
-    return true;
-  }
-  /// operator <
-  ///   Lexicographical comparison on (type, x, y).
-  ///   This makes vertices < horizontal edges < vertical edges < 2-cells
-  ///   and ties are broken by comparing x and y
-  bool
-  operator < ( Cell const& rhs ) const {
-    if ( type() == rhs.type() ) {
-      if ( x() == rhs.x() ) {
-        return y() < rhs.y();
-      } else {
-        return x() < rhs.x();
-      }
-    } else {
-      return type() < rhs.type ();
-    }
-  }
-  /// operator <<
-  friend std::ostream & operator << ( std::ostream & stream, Cell const& stream_me ) {
-    return stream << "(" << stream_me.x() << ", " << stream_me.y() << ", " << (int) stream_me.type() << ")";
-  }
-private:
-  uint64_t x_;
-  uint64_t y_;
-  uint64_t type_; // 0 for lower-left vertex, 1 for lower horizontal edge
-};
-
-/// CellHasher
-///   Provides a hash function for Cell objects
-///   This is required in order to use hash tables (e.g. std::unordered_map)
-struct CellHasher {
-  std::size_t operator()(const Cell& cell) const {
-      using boost::hash_value;
-      using boost::hash_combine;
-      std::size_t seed = 0;
-      hash_combine(seed,hash_value(cell.x()));
-      hash_combine(seed,hash_value(cell.y()));
-      hash_combine(seed,hash_value(cell.type()));
-      return seed;
-  }
-};
-
-/// ImageComplex
-///   Implements a 2D full cubical complex with Z_2 coefficients that is N wide and M tall.
-///   Methods:
-///     ImageComplex : Initialize the complex with width N and height M
-///     boundary : given a cell, returns an array of boundary cells
-///     coboundary : given a cell, returns an array of coboundary cells
-///     cells : return the set of cells in complex
-class ImageComplex {
-public:
-  /// ImageComplex
-  ///   Default constructor
-  ImageComplex ( void ) {}
-  /// ImageComplex
-  ///   Initialize the complex with width N and height M
-  ImageComplex ( uint64_t N, uint64_t M ) : N_(N), M_(M) {}
-  /// boundary
-  ///   Return array of boundary cells
-  std::vector<Cell>
-  boundary ( Cell const& cell ) const {
-    std::vector<Cell> bd;
-    uint64_t x = cell.x();
-    uint64_t y = cell.y();
-    uint64_t type = cell.type();
-    if ( cell.has_horizontal_extent() ) {
-      Cell left_bd = Cell(x,y,type & 2);
-      Cell right_bd = Cell(x+1,y, type & 2);
-      if ( _valid(left_bd) ) bd.push_back(left_bd);
-      if ( _valid(right_bd) ) bd.push_back(right_bd);
-    }
-    if ( cell.has_vertical_extent() ) {
-      Cell below_bd = Cell(x,y,type & 1);
-      Cell above_bd = Cell(x,y+1, type & 1);
-      if ( _valid(below_bd) ) bd.push_back(below_bd);
-      if ( _valid(above_bd) ) bd.push_back(above_bd);
-    }
-    return bd;
-  }
-  /// coboundary
-  ///   Return array of coboundary cells
-  std::vector<Cell>
-  coboundary ( Cell const& cell ) const {
-    std::vector<Cell> cbd;
-    uint64_t x = cell.x();
-    uint64_t y = cell.y();
-    uint64_t type = cell.type();
-    if ( not cell.has_horizontal_extent() ) {
-      Cell left_cbd = Cell(x-1,y,type | 1);
-      Cell right_cbd = Cell(x,y, type | 1);
-      if ( _valid(left_cbd) ) cbd.push_back(left_cbd);
-      if ( _valid(right_cbd) ) cbd.push_back(right_cbd);
-    }
-    if ( not cell.has_vertical_extent() ) {
-      Cell below_cbd = Cell(x,y-1,type | 2);
-      Cell above_cbd = Cell(x,y, type | 2);
-      if ( _valid(below_cbd) ) cbd.push_back(below_cbd);
-      if ( _valid(above_cbd) ) cbd.push_back(above_cbd);
-    }
-    return cbd;
-  }    
-  /// cells
-  ///   Return set of cells in the complex
-  std::unordered_set<Cell, CellHasher>
-  cells ( void ) const {
-    std::unordered_set<Cell, CellHasher> result;
-    for ( uint64_t x = 0; x <= N_; ++ x ) {
-      for ( uint64_t y = 0; y <= M_; ++ y ) {
-        for ( uint64_t type = 0; type < 4; ++ type ) {
-          Cell cell = Cell(x,y,type);
-          if ( _valid(cell) ) result . insert ( cell );
-        }
-      }
-    }
-    return result;
-  } 
-  /// size
-  ///   Return number of cells in complex
-  uint64_t
-  size ( void ) const {
-    return (N_+1)*(M_+1) + N_*M_ + (N_+1)*M_ + N_*(M_+1); // == 4NM + 2N + 2M + 1
-  }
-private:
-  uint64_t N_;
-  uint64_t M_;
-  /// valid
-  ///   Return true if cell is in 2D N x M complex
-  bool
-  _valid ( Cell const& cell ) const {
-    //if ( cell.x() < 0 || cell.y() < 0 ) return false;
-    if ( cell.x() > N_ || cell.y() > M_ ) return false;
-    if ( cell.x() == N_ && cell.has_horizontal_extent() ) return false;
-    if ( cell.y() == M_ && cell.has_vertical_extent() ) return false;
-    return true;
-  }
-};
 
 /// Filtration
 ///   A filtration of a complex is a total ordering of its cells such 
@@ -331,7 +157,7 @@ public:
   ///     complex   : complex associated with filtration
   ///     valuator  : a function which takes a Cell and returns a value
   ///     direction : either "ascending" or "descending" (gives desired ordering of values)
-  Filtration ( ImageComplex complex,
+  Filtration ( CubicalComplex complex,
                std::function<int64_t(Cell const&)> valuator,
                std::string const& direction ) : complex_(complex) {
     // Initialize the filtration
@@ -356,7 +182,7 @@ public:
   }
   /// complex
   ///   Return the complex the filtration is associated to
-  ImageComplex const&
+  CubicalComplex const&
   complex ( void ) const {
     return complex_;
   }
@@ -379,7 +205,7 @@ public:
     return (*filtration_)[i].second;
   }
 private:
-  ImageComplex complex_;
+  CubicalComplex complex_;
   std::shared_ptr<std::vector<std::pair<Cell, int64_t>>> filtration_;
   std::shared_ptr<std::unordered_map<Cell, uint64_t, CellHasher>> cell_indexing_;
 };
@@ -393,21 +219,18 @@ private:
 ///   Outputs:
 ///     a Filtration object
 Filtration
-SublevelFiltration ( Image const& image ) {
-  // Create N x M full 2D cubical complex
-  uint64_t N = image.width();
-  uint64_t M = image.height();
-  ImageComplex complex(N,M);
+SublevelFiltration ( Data const& data ) {
+  // Create cubical complex
+  CubicalComplex complex(data.resolution());
+  uint64_t D = complex.dimension();
+
   std::unordered_map<Cell, uint64_t, CellHasher> cell_values;
   std::queue<Cell> work_queue;
 
-  // Create 2-cells and assign pixel data to them
-  for ( int x = 0; x < N; ++ x ) {
-    for ( int y = 0; y < M; ++ y ) {
-      Cell cell = Cell(x,y,3); // type 3 = 2-cell
-      cell_values[cell] = image.data(x,y);
-      work_queue.push(cell);
-    }
+  // Create top-cells and assign pixel data to them
+  for ( cell : complex.cells(D) ) {
+    cell_values[cell] = image.data(x,y);
+    work_queue.push(cell);
   }
 
   // Recursively determine boundary cells and assign values
@@ -442,20 +265,16 @@ SublevelFiltration ( Image const& image ) {
 ///     a Filtration object
 Filtration
 SuperlevelFiltration ( Image const& image ) {
-  // Create a (N-1) x (M-1) cubical complex
-  uint64_t N = image.width();
-  uint64_t M = image.height();
-  ImageComplex complex(N-1,M-1);
+  // Create cubical complex
+  CubicalComplex complex(data.sizes());
+  uint64_t D = complex.dimension();
   std::unordered_map<Cell, uint64_t, CellHasher> cell_values;
   std::queue<Cell> work_queue;
 
   // Create vertices and assign pixel data to them
-  for ( int x = 0; x <= N; ++ x ) {
-    for ( int y = 0; y <= M; ++ y ) {
-      Cell cell = Cell(x,y,0); // type 0 = vertex
-      cell_values[cell] = image.data(x,y);
-      work_queue.push(cell);
-    }
+  for ( cell : complex.cells(0) ) {
+    cell_values[cell] = image.data(x,y);
+    work_queue.push(cell);
   }
 
   // Recursively determine coboundary cells and assign values
@@ -516,10 +335,11 @@ PersistenceViaPHAT ( Filtration const& filtration ) {
 }
 
 /// SavePersistenceResults
+///  TODO: make non-specific to 2D and 3D
 ///   Overview:
 ///     Save computed persistence results of a filtration to a file
 ///     This is a specialized function which assumes the associated complex
-///     is an "ImageComplex" and saves feature data related to x and y coordinates.
+///     is an "ImageComplex" and saves feature data related to x, y, and z coordinates (as available)
 ///   Inputs:
 ///     filtration   : a filtration of a complex
 ///     pairs        : PHAT output of birth-death cell persistence pairs
@@ -538,26 +358,24 @@ SavePersistenceResults ( Filtration const& filtration,
     auto birth_value = filtration.value(birth_cell_index);
     auto death_cell = filtration.cell(death_cell_index);
     auto death_value = filtration.value(death_cell_index);
+    auto birth_coordinates = [&](uint64_t d) { return birth_cell.coordinates().size() <= d ? 0 : birth_cell.coordinates()[i]; }
+    auto death_coordinates = [&](uint64_t d) { return death_cell.coordinates().size() <= d ? 0 : death_cell.coordinates()[i]; }
+
     if ( birth_value == death_value ) continue;
     outfile << birth_cell.dimension() << ", "
             << birth_value << ", "
-            << birth_cell.x() << ", "
-            << birth_cell.y() << ", "
-            << "0" << ", "
+            << birth_coordinates[0] << ", "
+            << birth_coordinates[1] << ", "
+            << birth_coordinates[2] << ", "
             << death_value << ", "
-            << death_cell.x() << ", "
-            << death_cell.y() << ", "
-            << "0" << "\n";
+            << death_coordinates[0] << ", "
+            << death_coordinates[1] << ", "
+            << death_coordinates[2] << "\n";
   }
 }
 
 /// main
-///  Usage: ImagePersistence <image_filename> <output_filename> <mode>
-///   <image_filename>  : input image filename
-///   <output_filename> : output filename (a CSV file)
-///   <mode>            : A mode of execution (either "sub" or "super")
-///                       to indicate whether to compute
-///                       sublevel or superlevel persistence.
+///   Entry point of program
 int main(int argc, char *argv[]) {
   // Check command line arguments
   if ( argc != 4 ) {
@@ -577,12 +395,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Load image file
-  Image image ( infile_name );
+  Data data ( infile_name );
 
   // Construct filtration, an object that stores an ordering of cells in a complex
   Filtration filtration;
-  if ( mode == "sub" ) filtration = SublevelFiltration(image);
-  if ( mode == "super" ) filtration = SuperlevelFiltration(image);
+  if ( mode == "sub" ) filtration = SublevelFiltration(data);
+  if ( mode == "super" ) filtration = SuperlevelFiltration(data);
 
   // Compute persistence given filtration
   phat::persistence_pairs pairs = PersistenceViaPHAT(filtration);
