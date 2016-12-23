@@ -27,3 +27,29 @@ Once the page loads, on the left you'll see a beautiful picture of simulated con
 
 To use the tool with your own data, first generate the persistence diagrams with the code contained in `phat_persistence_from_image/`, following the instructions in the README on how to compile and run the software. After your data is generated, you'll have to read the `explorer.html` file and change a whole lotta stuff in order to make it work. We're working on this to make it easeir to use, we promise!!
 
+# Installation
+
+Installation is accomplished by typing the following from the root of repository:
+
+    ./install.sh
+
+The program has the following dependencies:
+
+* C++11 compiler (any modern gcc or clang will do)
+* CImg
+* PHAT
+
+## Troubleshooting
+
+The installer attempts to download the CImg and PHAT dependencies. If `wget` or `git` are not available on your system this step will fail and the installation will abort. `wget` and `git` are important utilities for downloading files from the internet from the command line.
+
+On Mac OS X, `wget` is best obtained with Homebrew.
+
+# Maintainer Notes
+
+The `ImagePersistence` program is built and placed in `/source/PersistenceExplorer/bin`. The Python package installer then copies this executable onto path so it can be used.
+
+Python packaging: <http://python-packaging.readthedocs.io/en/latest/everything.html>
+
+
+

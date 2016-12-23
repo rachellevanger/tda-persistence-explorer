@@ -1,0 +1,53 @@
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+circle.selected {
+  stroke-width: 1px;
+  stroke: #555;
+}
+
+path {
+      fill: none;
+      /*fill-opacity: .065;*/
+      stroke-width: 1px;
+      stroke: #666;
+    }
+
+
+.PersistenceExplorerPanel {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.divListGens {
+  display: inline-block;
+  vertical-align: top;
+  margin-left: 1em;
+}
+
+
+
+.img {
+    position: absolute;
+    z-index: -1;
+}
+
+
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .25;
+  shape-rendering: crispEdges;
+}
+
+
+.slide {
+  font-size: 1.5em;
+}
