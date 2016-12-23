@@ -10,6 +10,10 @@
 //   2016-12-15 Shaun Harker
 //      * generalized to higher dimensions
 
+// USE FLOATING POINT DATA
+// x y z value \n FORMAT
+// DON'T ASSUME SORTED PROPERLY.
+
 #include <memory>
 #include <fstream>
 #include <string>
@@ -47,18 +51,18 @@ std::string help_string =
 
 // Implementation overview:
 // Classes
-//   * `data`        : class for loading and accessing multidimensional data
+//   * `Data`        : class for loading and accessing multidimensional data
 //   * `Filtration`   : class for storing filtrations of complexes
 // Functions
-//   * `SublevelFiltration`     : Given an Image object, construct a Filtration object
-//   * `SuperlevelFiltration`   : Given an Image object, construct a Filtration object
+//   * `SublevelFiltration`     : Given an Data object, construct a Filtration object
+//   * `SuperlevelFiltration`   : Given an Data object, construct a Filtration object
 //   * `PersistenceViaPHAT`     : Given a Filtration object, compute persistence pairs
 //   * `SavePersistenceResults` : Given Filtration and PersistencePairs, save result to file                              
 //   * `main`                   : Parse command line arguments, create filtration, 
 //                                compute persistence, and write output to file
 
 /// Data
-///   This class is used to load and access 2D image data
+///   This class is used to load and access data
 class Data {
 public:
   /// Data
@@ -94,7 +98,7 @@ public:
     resolution_ . resize ( 2 );
     resolution_[0] = image -> width();
     resolution_[1] = image -> height();   
-    data_ = [=](std::vector<uint64_t> const& coordinates) {return (*image_)(coordinates[0],coordinates[1],0,1);} 
+    data_ = [=](std::vector<uint64_t> const& coordinates) {return (*image)(coordinates[0],coordinates[1],0,1);} 
   }
 
   /// loadData
@@ -153,7 +157,7 @@ public:
   ///     complex   : complex associated with filtration
   ///     valuator  : a function which takes a Cell and returns a value
   ///     direction : either "ascending" or "descending" (gives desired ordering of values)
-  Filtration ( ImageComplex complex,
+  Filtration ( CubicalComplex complex,
                std::function<int64_t(Cell const&)> valuator,
                std::string const& direction ) : complex_(complex) {
     // Initialize the filtration
@@ -178,7 +182,7 @@ public:
   }
   /// complex
   ///   Return the complex the filtration is associated to
-  ImageComplex const&
+  CubicalComplex const&
   complex ( void ) const {
     return complex_;
   }
@@ -201,7 +205,7 @@ public:
     return (*filtration_)[i].second;
   }
 private:
-  ImageComplex complex_;
+  CubicalComplex complex_;
   std::shared_ptr<std::vector<std::pair<Cell, int64_t>>> filtration_;
   std::shared_ptr<std::unordered_map<Cell, uint64_t, CellHasher>> cell_indexing_;
 };
@@ -217,7 +221,7 @@ private:
 Filtration
 SublevelFiltration ( Data const& data ) {
   // Create cubical complex
-  CubicalComplex complex(data.sizes());
+  CubicalComplex complex(data.resolution());
   uint64_t D = complex.dimension();
 
   std::unordered_map<Cell, uint64_t, CellHasher> cell_values;
