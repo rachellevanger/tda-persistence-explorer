@@ -21,6 +21,12 @@ The program has the following dependencies:
 * CImg
 * PHAT
 
+## Troubleshooting
+
+The installer attempts to download the CImg and PHAT dependencies. If `wget` or `git` are not available on your system this step will fail and the installation will abort. `wget` and `git` are important utilities for downloading files from the internet from the command line.
+
+On Mac OS X, `wget` is best obtained with Homebrew.
+
 # Try it out
 
 Once you've installed the app, type the following in the command line to start up a jupyter notebook:
@@ -32,12 +38,6 @@ Once you've installed the app, type the following in the command line to start u
 Once your local notebook server is running, navigate to `/doc/Tutorial.ipynb` and start up the notebook. The Tutorial will walk you through a sample dataset provided with this installation.
 
 NOTE: Currently the width of the image and persistence diagrams are hardcoded to only work with the test data. We are working on updating this.
-
-## Troubleshooting
-
-The installer attempts to download the CImg and PHAT dependencies. If `wget` or `git` are not available on your system this step will fail and the installation will abort. `wget` and `git` are important utilities for downloading files from the internet from the command line.
-
-On Mac OS X, `wget` is best obtained with Homebrew.
 
 # Maintainer Notes
 
