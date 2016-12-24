@@ -368,7 +368,6 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
 
   // Display settings
   var divs = _divs || { divImg : "#divImg", divPD : "#divPD", divSlide : "#divSlide" };
-  var displaysize = 400;
   var width = 421;
   var height = 421;
   var brush = d3.svg.brush()
