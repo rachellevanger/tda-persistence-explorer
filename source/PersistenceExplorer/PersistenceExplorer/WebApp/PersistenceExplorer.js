@@ -153,7 +153,7 @@ function runImageAnimation (_data, _frames, _dimension, _divs) {
 
     // Draw current frame
     d3.select(_divs.divImg + ">img[frame_number='"+current_frame+"']")
-      .attr("style","");
+      .attr("style","margin: 0;");
 
     // Clear previous frame
     var previous_frame = (frame_index == 0) ? last_frame : _frames[frame_index-1];
@@ -164,7 +164,7 @@ function runImageAnimation (_data, _frames, _dimension, _divs) {
     }
     // Update slide number
     d3.select(_divs.divSlide + ">text")
-      .text("Sample point: " + current_frame);
+      .text("Frame number: " + current_frame);
 
     // Update the drawings overlaid on the iamge
     annotateImageWithFeatures(_data, current_frame, d3.select(_divs.divImg+">svg"), _dimension);
@@ -368,11 +368,12 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
 
   // Display settings
   var divs = _divs || { divImg : "#divImg", divPD : "#divPD", divSlide : "#divSlide" };
+  var displaysize = 400;
   var width = 421;
   var height = 421;
   var brush = d3.svg.brush()
-      .x(d3.scale.identity().domain([0, 421]))  // brushwidth
-      .y(d3.scale.identity().domain([0, 421])); // brushheight
+      .x(d3.scale.identity().domain([0, width]))  // brushwidth
+      .y(d3.scale.identity().domain([0, height])); // brushheight
   var sizeUnselected = 2;
   var sizeSelected = 4;
   var colorInside = d3.scale.linear()
@@ -402,14 +403,16 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
   // Create Frame Indicator
   d3.select(divs.divSlide)
     .append("text")
-      .text("Sample point: " + _frames[0]);
+      .text("Frame number: " + _frames[0]);
 
   // Create SVG to draw image annotations in
   var svgImg = d3.select(divs.divImg)
       .append("svg")
         .attr("width", width )
-        .attr("height", height );
-        //.style("position", "absolute");
+        .attr("height", height )
+        .attr("margin", 0)
+        .attr("padding", 0);
+        // .style("position", "absolute");
 
   // Setup callback for reverse selection
   brush.on("brushend", function () {
