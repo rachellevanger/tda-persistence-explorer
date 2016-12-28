@@ -37,11 +37,11 @@ def Execute(command_string, html_string):
   return IPython.display.HTML(output)
 
 
-def PersistenceExplorer( imagefiles, persistencefiles, frames, dimension ):
+def PersistenceExplorer( imagefiles, persistencefiles, frames, dimension, imagesize, maximagesize, pdsize ):
   # Create a unique prefix identifier to prevent confused ids 
   prefix = ''.join(random.SystemRandom().choice(string.ascii_uppercase) for _ in range(16))
   # Substitute passed parameters into call
-  command_string = "PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs);"
+  command_string = "PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs, _imagesize, _maximagesize, _pdsize);"
   command_string = command_string.replace('_imagefiles', json.dumps(imagefiles))
   command_string = command_string.replace('_persistencefiles', json.dumps(persistencefiles))
   command_string = command_string.replace('_frames', json.dumps(frames))
@@ -50,6 +50,9 @@ def PersistenceExplorer( imagefiles, persistencefiles, frames, dimension ):
     json.dumps({'divImg' : '#' + prefix + 'divImg', 
                 'divPD' : '#' + prefix + 'divPD',
                 'divSlide' : '#' + prefix + 'divSlide'}))
+  command_string = command_string.replace('_imagesize', json.dumps(imagesize))
+  command_string = command_string.replace('_maximagesize', json.dumps(maximagesize))
+  command_string = command_string.replace('_pdsize', json.dumps(pdsize))
   # Create HTML string to write app into
   html_string = """
 <div id="divImg" class="PersistenceExplorerPanel"></div>

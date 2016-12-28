@@ -5,6 +5,21 @@
 
 // Requires: d3
 
+
+
+// String.prototype.format
+//   Source: http://stackoverflow.com/a/4256130/1467617
+//   Effects: Acts like sprintf for Javascript.
+//   Example: 'The {0} is dead. Don\'t code {0}. Code {1} that is open source!'.format('ASP', 'JS');
+String.prototype.format = function() {
+    var formatted = this;
+    for (var i = 0; i < arguments.length; i++) {
+        var regexp = new RegExp('\\{'+i+'\\}', 'gi');
+        formatted = formatted.replace(regexp, arguments[i]);
+    }
+    return formatted;
+};
+
 // loadImages(_imagefilenames, _frames, _divs)
 //   Inputs:
 //     _imagefilenames : a list of filenames pointing to image data
@@ -25,7 +40,7 @@ function loadImages(_imagefilenames, _frames, _divs) {
             .attr('src', _imagefilenames[frame_number])
             .attr('frame_number', frame_number)
             .attr('class', 'img')
-            .attr("style","display: none");
+            .attr("style","display: none;");
   });
 }
 
@@ -35,12 +50,13 @@ function loadImages(_imagefilenames, _frames, _divs) {
 //              Each file is a .csv file which contains fields for 
 //              "birth" "death" "b_x" "b_y" "d_x" "d_y" and "dim"
 //     _frames : a list of frames (corresponding to _files indexing) of interest
+//     _scale : a scaling factor for the birth and death critical cell locations
 //   Outputs:
 //     Loads the files _files[_frames[i]] for 0 <= i < _frames.length, and returns
 //     a promise-wrapped list of objects with "birth" "death" "time" and "selected" fields.
 //     The "time" field gives the index of the file in which the data was loaded.
 //     The "selected" field is initialized as "false"
-function loadPersistenceData(_files, _frames) {
+function loadPersistenceData(_files, _frames, _scale) {
   function PromiseToLoadSingleFile(frame_number){
     return new Promise(function(resolve, reject){
         var img = new Image()
@@ -48,10 +64,10 @@ function loadPersistenceData(_files, _frames) {
           dataset.forEach(function(d) {
             d.birth = parseInt(d.birth);
             d.death = parseInt(d.death);
-            d.b_x = parseInt(d.b_x);
-            d.b_y = parseInt(d.b_y);
-            d.d_x = parseInt(d.d_x);
-            d.d_y = parseInt(d.d_y);
+            d.b_x = parseInt(parseFloat(d.b_x)*_scale);
+            d.b_y = parseInt(parseFloat(d.b_y)*_scale);
+            d.d_x = parseInt(parseFloat(d.d_x)*_scale);
+            d.d_y = parseInt(parseFloat(d.d_y)*_scale);
             d.time = frame_number;
             d.selected = false;
           });
@@ -138,10 +154,12 @@ function annotateImageWithFeatures( _data, _frame_number, _svg, _dimension ){
 //     _frames : a list of frame numbers (used for animation of images)
 //     _dimension : an integer indicating dimension of persistence diagram of interest
 //     _divs : the CSS selectors indicating the divs to paint animation
+//     _height : the actual display height of the image
+//     _width : the actual display width of the image
 //   Effect:
 //     Plays an animation of the images. Each image frame is annotated with
 //     features selected with reverse selector brush.
-function runImageAnimation (_data, _frames, _dimension, _divs) {
+function runImageAnimation (_data, _frames, _dimension, _divs, _height, _width) {
 
   var first_frame = _frames[0];
   var last_frame = _frames[_frames.length-1];
@@ -153,14 +171,14 @@ function runImageAnimation (_data, _frames, _dimension, _divs) {
 
     // Draw current frame
     d3.select(_divs.divImg + ">img[frame_number='"+current_frame+"']")
-      .attr("style","margin: 0;");
+      .attr("style","margin: 0; width: {0}px; height: {1}px;".format(_width, _height));
 
     // Clear previous frame
     var previous_frame = (frame_index == 0) ? last_frame : _frames[frame_index-1];
     if ( previous_frame != current_frame) {
       // Prevent erasing previous frame in one frame case
       d3.select(_divs.divImg + ">img[frame_number='"+previous_frame+"']")
-        .attr("style","display: none");
+        .attr("style","display: none;");
     }
     // Update slide number
     d3.select(_divs.divSlide + ">text")
@@ -223,12 +241,14 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   var getColor = _display_settings.getColor;
   var getSize = _display_settings.getSize;
   var divs = _display_settings.divs;
+  var pdsize = _display_settings.pdsize;
+  var margin = 30; // Make room for the axis labels
 
   var x = d3.scale.linear()
-      .range([0, width]);
+      .range([0, pdsize]);
 
   var y = d3.scale.linear()
-      .range([height, 0]);
+      .range([pdsize, 0]);
 
   var xAxis = d3.svg.axis()
       .scale(x)
@@ -240,10 +260,12 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
 
   var svg = d3.select(divs.divPD)
       .append("svg")
-        .attr("width", width )
-        .attr("height", height )
+        .attr("width", pdsize + margin )
+        .attr("height", pdsize + margin )
         .attr("class","svg")
         .append("g")
+        .attr("transform", "translate(" + margin + ",0)")
+        .style("font-size", "8pt");
 
   // Transforms placement of center of points onto plane (vs absolute coordinates)
   x.domain(d3.extent(_data, function(d) { return d.birth; })).nice();
@@ -252,11 +274,11 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   // Style and build the persistence diagram
   svg.append("g")
       .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
+      .attr("transform", "translate(0," + pdsize + ")")
       .call(xAxis)
     .append("text")
       .attr("class", "label")
-      .attr("x", width)
+      .attr("x", pdsize)
       .attr("y", -6)
       .style("text-anchor", "end")
       .text("birth");
@@ -281,13 +303,13 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
        .style("fill", getColor)
        .attr("r", getSize);
 
-  // Title of plot
-  svg.append("text")
-      .attr("class", "title")
-      .attr("x", width/2)
-      .attr("y", 0 )
-      .attr("text-anchor", "middle")
-      .text("Dim " + _dimension);
+  // // Title of plot
+  // svg.append("text")
+  //     .attr("class", "title")
+  //     .attr("x", pdsize/2)
+  //     .attr("y", 0 )
+  //     .attr("text-anchor", "middle")
+  //     .text("Dim " + _dimension);
 
   // Lasso functionality 
   var mysvg = d3.select(divs.divPD + " svg");
@@ -327,7 +349,7 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
       d.selected = false;
       var p_x = parseFloat(d3.select(this).attr("cx"));
       var p_y = parseFloat(d3.select(this).attr("cy"));
-      point = [p_x, p_y ];
+      point = [p_x + margin, p_y ];
       if (pointInPolygon(point, coords)) {
         d3.select(this).classed("selected", true)
         d.selected = true;
@@ -339,7 +361,7 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   // Code executed when lasso dragging ends 
   var dragEnd = function() {
     drawPath(true);
-    runImageAnimation(dot, _frames, _dimension, divs);
+    runImageAnimation(dot, _frames, _dimension, divs, height, width);
   };
 
   // D3 behavior encapsularing "dragStart", "dragMove", and "dragEnd":
@@ -352,24 +374,38 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
   mysvg.call(drag);
 }
 
-// PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs)
+// PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs, _imagesize, _maximagesize, _pdsize)
 //   Inputs:
 //     _imagefiles : a list of filenames containing image files
 //     _persistencefiles : a list of filenames containing persistence diagram data
 //     _frames : a list of frame numbers (frame indexing corresponds to _imagefiles and _persistencefiles indexing)
 //     _dimension : an integer indicating dimension of persistence diagram of interest
 //     _divs : the CSS selectors indicating the divs to draw app in
+//     _imagesize : an array [width, height] holding the actual dimensions of the image
+//     _maximagesize : an integer giving the maximum height/width of the displayed image in pixels 
+//                     (can be larger than the acual image to magnify)
+//     _pdsize : an integer giving the size of the persistence diagram, in pixels.
 //   Effect:
 //     Creates PersistenceExplorer application examining the frames of the
 //     _imagefiles image files and _persistencefiles  data files which are
 //     indicated in the list of frames _frames. Only persistence points 
-//     of _dimension are considered
-function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs) {
+//     of _dimension are considered. Image is scaled to size _maximagesize.
+//     Persistence plane is also scaled to size _pdsize.
+function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs, _imagesize, _maximagesize, _pdsize) {
 
   // Display settings
   var divs = _divs || { divImg : "#divImg", divPD : "#divPD", divSlide : "#divSlide" };
-  var width = 421;
-  var height = 421;
+
+  var imagewidth = _imagesize[0];
+  var imageheight = _imagesize[1];
+  var imagemaxsize = _maximagesize;
+  var pdsize = _pdsize;
+
+  var imagescale = imagemaxsize/Math.max(imagewidth, imageheight);
+
+  var width = imagewidth*imagescale;
+  var height = imageheight*imagescale;
+
   var brush = d3.svg.brush()
       .x(d3.scale.identity().domain([0, width]))  // brushwidth
       .y(d3.scale.identity().domain([0, height])); // brushheight
@@ -389,7 +425,9 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
     height : height,
     getColor : getColor,
     getSize : getSize,
-    divs : divs
+    divs : divs,
+    pdsize : pdsize,
+    imagescale : imagescale
   };
 
   // Initialize the Image Data
@@ -397,7 +435,7 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
 
   // Display first frame
   d3.select(divs.divImg + " img[frame_number='"+_frames[0]+"']")
-    .attr('style','');
+    .attr('style','width: {0}px; height: {1}px;'.format(width, height));
 
   // Create Frame Indicator
   d3.select(divs.divSlide)
@@ -432,7 +470,7 @@ function PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension
     .call(brush);
 
   // Initialize the Persistence Diagram 
-  loadPersistenceData(_persistencefiles, _frames).then(function(data){
+  loadPersistenceData(_persistencefiles, _frames, imagescale).then(function(data){
     plotPersistenceDiagram(data, _frames, _dimension, display_settings);
   });
 
