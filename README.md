@@ -11,7 +11,7 @@ Rachel Levanger
 
 # Installation
 
-Installation is accomplished by typing the following from the root of repository:
+Type the following from the root of repository in order to install the program:
 
     ./install.sh
 
@@ -23,7 +23,7 @@ The program has the following dependencies:
 
 ## Troubleshooting
 
-The installer attempts to download the CImg and PHAT dependencies. If `wget` or `git` are not available on your system this step will fail and the installation will abort. `wget` and `git` are important utilities for downloading files from the internet from the command line.
+The installer attempts to download the CImg and PHAT dependencies. If `wget` or `git` are not available on your system, this step will fail and the installation will abort. `wget` and `git` are important utilities for downloading files from the internet from the command line.
 
 On Mac OS X, `wget` is best obtained with Homebrew.
 

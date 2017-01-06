@@ -76,6 +76,7 @@ def ProcessImageListWithPHAT( list_of_image_filenames, list_of_output_filenames,
     list_of_output_filenames: a list of files to save corresponding persistence results in
     filtration_type: either "sub" or "super" to indicate to obtain persistence results for either
                      sublevel or superlevel set filtrations
+    cores: the number of cores to use for the parallel computation of persistence diagrams.
   """
   def chunks(l, n):
     """Yield successive n-sized chunks from l."""
