@@ -268,8 +268,10 @@ function plotPersistenceDiagram( _data, _frames, _dimension, _display_settings )
         .style("font-size", "8pt");
 
   // Transforms placement of center of points onto plane (vs absolute coordinates)
-  x.domain(d3.extent(_data, function(d) { return d.birth; })).nice();
-  y.domain(d3.extent(_data, function(d) { return d.death; })).nice();
+  // x.domain(d3.extent(_data, function(d) { return d.birth; })).nice();
+  // y.domain(d3.extent(_data, function(d) { return d.death; })).nice();
+  x.domain([0,255]).nice(); // Fix coordinates to the entire range of grayscale values
+  y.domain([0,255]).nice(); // Fix coordinates to the entire range of grayscale values
 
   // Style and build the persistence diagram
   svg.append("g")
