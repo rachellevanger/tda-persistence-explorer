@@ -1,4 +1,4 @@
-# TDA D3 Explorer
+# TDA Persistence Explorer
 
 A data exploration tool for Topological Data Analysis (TDA). This repository contains a D3-based Python module and a sample Jupyter notebook suitable for analyzing persistence diagrams generated from 2D images, and is especially useful for studying time series of images (i.e. video). 
 
