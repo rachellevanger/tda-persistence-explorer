@@ -80,7 +80,7 @@ set ( LIBS      ${LIBS}
 add_executable ( DataPersistence DataPersistence.cpp )
 target_link_libraries ( DataPersistence ${LIBS} )
 
-install(TARGETS ImagePersistence
+install(TARGETS DataPersistence
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)

@@ -30,12 +30,14 @@
 #include <phat/compute_persistence_pairs.h>
 #include "CImg.h"
 
+#include "CubicalComplex.h"
+
 #include <stdint.h>
 
 using namespace cimg_library;
 
 std::string help_string = 
-" Usage: ImagePersistence <input_filename> <output_filename> <mode> \n"
+" Usage: DataPersistence <input_filename> <output_filename> <mode> \n"
 "   <input_filename>  : input filename \n"
 "   <output_filename> : output filename (a CSV file)\n"
 "   <mode>            : A mode of execution (either \"sub\" or \"super\") \n"
@@ -76,7 +78,7 @@ public:
   Data ( std::string const& input_filename ) {
     const auto list_of_image_extensions = { "png", "bmp", "jpeg", "jpg", "gif" };
     // Get filename extension (part after last ".")
-    auto ext = input_filename.substr(fn.find_last_of(".") + 1);
+    auto ext = input_filename.substr(input_filename.find_last_of(".") + 1);
     // We check if `ext` is in `list_of_image_extensions`
     // C++ has atrocious semantics for this:
     auto begin = list_of_image_extensions.begin();
@@ -98,7 +100,7 @@ public:
     resolution_ . resize ( 2 );
     resolution_[0] = image -> width();
     resolution_[1] = image -> height();   
-    data_ = [=](std::vector<uint64_t> const& coordinates) {return (*image)(coordinates[0],coordinates[1],0,1);} 
+    data_ = [=](std::vector<uint64_t> const& coordinates) {return (*image)(coordinates[0],coordinates[1],0,1);}; 
   }
 
   /// loadData
@@ -165,10 +167,10 @@ public:
 
     // Check if there actually are N points of data in file
     if ( data.size() < N ) {
-      throw std::runtime_error("Error parsing " + infile_name + ": not every grid point is given a value.");
+      throw std::runtime_error("Error parsing " + data_filename + ": not every grid point is given a value.");
     }
     if ( data.size() > N ) {
-      throw std::runtime_error("Error parsing " + infile_name + ": redundant data points.");
+      throw std::runtime_error("Error parsing " + data_filename + ": redundant data points.");
     }
 
     // Sort the data
@@ -189,7 +191,7 @@ public:
       p.pop_back();
       q.pop_back();
       if ( p == q ) {
-        throw std::runtime_error("Error parsing " + infile_name + ": redundant data points.");
+        throw std::runtime_error("Error parsing " + data_filename + ": redundant data points.");
       }
     }
 
@@ -207,8 +209,8 @@ public:
       for ( int i = 0; i < dimension; ++ i ) {
         idx += coordinates[i] * place_values[i];
       }
-      return values[idx];
-    }
+      return (*values)[idx];
+    };
   }
 
   /// resolution
@@ -218,11 +220,12 @@ public:
   resolution ( void ) const {
     return resolution_;
   }
-  /// data
+
+  /// operator ()
   ///   Given 0 <= x < width() and 0 <= y < height(), 
   ///   return pixel data at position (x,y)
   uint64_t
-  data ( std::vector<uint64_t> const& coordinates ) const {
+  operator () ( std::vector<uint64_t> const& coordinates ) const {
     return data_(coordinates);
   }
 private:
@@ -243,24 +246,26 @@ private:
 ///     * value(i)    : given a positionin the filtration, give the value of the associated cell
 class Filtration {
 public:
+
   /// Filtration
   ///   Default constructor
   Filtration ( void ) {}
+
   /// Filtration
   ///   Overview:
   ///     Construct a filtration of the given complex according 
   ///     to either an ascending or descending sort of provided values
   ///   Inputs:
   ///     complex   : complex associated with filtration
-  ///     valuator  : a function which takes a Cell and returns a value
+  ///     valuator  : a function which takes a CubicalCell and returns a value
   ///     direction : either "ascending" or "descending" (gives desired ordering of values)
   Filtration ( CubicalComplex complex,
-               std::function<int64_t(Cell const&)> valuator,
+               std::function<int64_t(CubicalCell const&)> valuator,
                std::string const& direction ) : complex_(complex) {
     // Initialize the filtration
-    typedef std::pair<Cell, int64_t> CellValue;
-    filtration_ . reset ( new std::vector<CellValue> );
-    for ( auto cell : complex.cells () ) filtration_ -> push_back ( { cell, valuator(cell) } );
+    typedef std::pair<CubicalCell, int64_t> CubicalCellValue;
+    filtration_ . reset ( new std::vector<CubicalCellValue> );
+    for ( auto cell : complex ) filtration_ -> push_back ( { cell, valuator(cell) } );
     // Prepare the sort
     bool ascending_or_descending;
     if ( direction == "ascending" ) ascending_or_descending = false;
@@ -268,33 +273,37 @@ public:
     if ( direction != "ascending" && direction != "descending" ) {
       throw std::runtime_error("Filtration:" + direction + " is not a valid mode");
     }
-    auto comparator = [&](CellValue const& a, CellValue const& b){
+    auto comparator = [&](CubicalCellValue const& a, CubicalCellValue const& b){
         if ( a.second == b.second ) return a.first < b.first;
         return ascending_or_descending != (a.second < b.second);
       };
     std::sort(filtration_->begin(), filtration_->end(), comparator);
     // Index the cells
-    cell_indexing_ . reset ( new std::unordered_map<Cell, uint64_t, CellHasher> );
+    cell_indexing_ . reset ( new std::unordered_map<CubicalCell, uint64_t> );
     for ( uint64_t i = 0; i < complex.size(); ++ i ) (*cell_indexing_)[cell(i)] = i; 
   }
+
   /// complex
   ///   Return the complex the filtration is associated to
   CubicalComplex const&
   complex ( void ) const {
     return complex_;
   }
+
   /// cell
   ///   Return the ith cell in the filtration
-  Cell const&
+  CubicalCell const&
   cell ( uint64_t i ) const {
     return (*filtration_)[i].first;
   }
+
   /// index
   ///   Given a cell, return its position in the filtration
   uint64_t
-  index ( Cell const& cell) const {
+  index ( CubicalCell const& cell) const {
     return (*cell_indexing_)[cell];
   } 
+
   /// value
   ///   Return the value associated with a cell in the filtration
   int64_t 
@@ -303,8 +312,8 @@ public:
   }
 private:
   CubicalComplex complex_;
-  std::shared_ptr<std::vector<std::pair<Cell, int64_t>>> filtration_;
-  std::shared_ptr<std::unordered_map<Cell, uint64_t, CellHasher>> cell_indexing_;
+  std::shared_ptr<std::vector<std::pair<CubicalCell, int64_t>>> filtration_;
+  std::shared_ptr<std::unordered_map<CubicalCell, uint64_t>> cell_indexing_;
 };
 
 /// SublevelFiltration
@@ -321,13 +330,15 @@ SublevelFiltration ( Data const& data ) {
   CubicalComplex complex(data.resolution());
   uint64_t D = complex.dimension();
 
-  std::unordered_map<Cell, uint64_t, CellHasher> cell_values;
-  std::queue<Cell> work_queue;
+  std::unordered_map<CubicalCell, uint64_t> cell_values;
+  std::queue<CubicalCell> work_queue;
 
   // Create top-cells and assign pixel data to them
-  for ( cell : complex.cells(D) ) {
-    cell_values[cell] = image.data(x,y);
-    work_queue.push(cell);
+  for ( auto cell : complex ) { // A more efficient iteration pattern would avoid needing "if dim == D"
+    if ( cell.dimension() == D ) { 
+      cell_values[cell] = data(cell.coordinates());
+      work_queue.push(cell);
+    }
   }
 
   // Recursively determine boundary cells and assign values
@@ -335,9 +346,9 @@ SublevelFiltration ( Data const& data ) {
   //   * The queueing prevents lower dimensional cells from being processed until after
   //     all higher dimensional cells are processed
   while ( not work_queue . empty () ) {
-    Cell work_cell = work_queue . front (); 
+    CubicalCell work_cell = work_queue . front (); 
     work_queue . pop ();
-    for ( Cell const& bd_cell : complex.boundary(work_cell) ) {
+    for ( CubicalCell const& bd_cell : complex.boundary(work_cell) ) {
       if ( cell_values.count(bd_cell) == 0 ) { 
         work_queue.push(bd_cell);
         cell_values[bd_cell] = cell_values[work_cell];
@@ -348,7 +359,7 @@ SublevelFiltration ( Data const& data ) {
   }
 
   // Return filtration object
-  auto valuation = [&](Cell const& cell){return cell_values[cell];};
+  auto valuation = [&](CubicalCell const& cell){return cell_values[cell];};
   return Filtration ( complex, valuation, "ascending" );
 }
 
@@ -361,17 +372,21 @@ SublevelFiltration ( Data const& data ) {
 ///   Outputs:
 ///     a Filtration object
 Filtration
-SuperlevelFiltration ( Image const& image ) {
+SuperlevelFiltration ( Data const& data ) {
   // Create cubical complex
-  CubicalComplex complex(data.sizes());
+  auto decremented_resolution = data.resolution();
+  for ( auto & size : decremented_resolution ) --size;
+  CubicalComplex complex(decremented_resolution);
   uint64_t D = complex.dimension();
-  std::unordered_map<Cell, uint64_t, CellHasher> cell_values;
-  std::queue<Cell> work_queue;
+  std::unordered_map<CubicalCell, uint64_t> cell_values;
+  std::queue<CubicalCell> work_queue;
 
   // Create vertices and assign pixel data to them
-  for ( cell : complex.cells(0) ) {
-    cell_values[cell] = image.data(x,y);
-    work_queue.push(cell);
+  for ( auto cell : complex ) { // A more efficient iteration pattern would avoid needing "if dim == 0"
+    if ( cell.dimension() == 0 ) {
+      cell_values[cell] = data(cell.coordinates());
+      work_queue.push(cell);
+    }
   }
 
   // Recursively determine coboundary cells and assign values
@@ -379,9 +394,9 @@ SuperlevelFiltration ( Image const& image ) {
   //   * The queueing prevents higher dimensional cells from being processed until after
   //     all lower dimensional cells are processed
   while ( not work_queue . empty () ) {
-    Cell work_cell = work_queue . front (); 
+    CubicalCell work_cell = work_queue . front (); 
     work_queue . pop ();
-    for ( Cell const& cbd_cell : complex.coboundary(work_cell) ) {
+    for ( CubicalCell const& cbd_cell : complex.coboundary(work_cell) ) {
       if ( cell_values.count(cbd_cell) == 0 ) { 
         work_queue.push(cbd_cell);
         cell_values[cbd_cell] = cell_values[work_cell];
@@ -392,7 +407,7 @@ SuperlevelFiltration ( Image const& image ) {
   }
 
   // Return filtration object
-  auto valuation = [&](Cell const& cell){return cell_values[cell];};
+  auto valuation = [&](CubicalCell const& cell){return cell_values[cell];};
   return Filtration ( complex, valuation, "descending" );
 }
 
@@ -404,7 +419,7 @@ SuperlevelFiltration ( Image const& image ) {
 phat::persistence_pairs
 PersistenceViaPHAT ( Filtration const& filtration ) {
   // Get reference to complex
-  ImageComplex const& complex = filtration.complex();
+  CubicalComplex const& complex = filtration.complex();
 
   // Create boundary matrix object
   phat::boundary_matrix< phat::vector_vector > boundary_matrix;
@@ -415,9 +430,9 @@ PersistenceViaPHAT ( Filtration const& filtration ) {
 
   // Set column for each cell
   for ( phat::index i = 0; i < num_cells; ++ i ) {
-    Cell const& cell = filtration.cell(i) ;
+    CubicalCell const& cell = filtration.cell(i) ;
     std::vector<phat::index> boundary;
-    for ( Cell const& bd_cell : complex.boundary(cell) ) {
+    for ( CubicalCell const& bd_cell : complex.boundary(cell) ) {
       boundary.push_back(filtration.index(bd_cell));
     }
     std::sort(boundary.begin(), boundary.end()); // is this required?
@@ -436,7 +451,7 @@ PersistenceViaPHAT ( Filtration const& filtration ) {
 ///   Overview:
 ///     Save computed persistence results of a filtration to a file
 ///     This is a specialized function which assumes the associated complex
-///     is an "ImageComplex" and saves feature data related to x, y, and z coordinates (as available)
+///     is an "CubicalComplex" and saves feature data related to x, y, and z coordinates (as available)
 ///   Inputs:
 ///     filtration   : a filtration of a complex
 ///     pairs        : PHAT output of birth-death cell persistence pairs
@@ -455,19 +470,19 @@ SavePersistenceResults ( Filtration const& filtration,
     auto birth_value = filtration.value(birth_cell_index);
     auto death_cell = filtration.cell(death_cell_index);
     auto death_value = filtration.value(death_cell_index);
-    auto birth_coordinates = [&](uint64_t d) { return birth_cell.coordinates().size() <= d ? 0 : birth_cell.coordinates()[i]; }
-    auto death_coordinates = [&](uint64_t d) { return death_cell.coordinates().size() <= d ? 0 : death_cell.coordinates()[i]; }
+    auto birth_coordinates = [&](uint64_t d) { return birth_cell.coordinates().size() <= d ? 0 : birth_cell.coordinates()[i]; };
+    auto death_coordinates = [&](uint64_t d) { return death_cell.coordinates().size() <= d ? 0 : death_cell.coordinates()[i]; };
 
     if ( birth_value == death_value ) continue;
     outfile << birth_cell.dimension() << ", "
             << birth_value << ", "
-            << birth_coordinates[0] << ", "
-            << birth_coordinates[1] << ", "
-            << birth_coordinates[2] << ", "
+            << birth_coordinates(0) << ", "
+            << birth_coordinates(1) << ", "
+            << birth_coordinates(2) << ", "
             << death_value << ", "
-            << death_coordinates[0] << ", "
-            << death_coordinates[1] << ", "
-            << death_coordinates[2] << "\n";
+            << death_coordinates(0) << ", "
+            << death_coordinates(1) << ", "
+            << death_coordinates(2) << "\n";
   }
 }
 
