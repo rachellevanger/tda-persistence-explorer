@@ -151,10 +151,12 @@ public:
     CubicalCell_ & cell_data = cell.data();
     std::vector<uint64_t> & coordinates = cell_data.coordinates_;
     uint64_t & type = cell_data.type_;
+    if ( type == 1 << dimension() ) return; // next is idempotent on end.
     do {
       for ( uint64_t d = 0; d <= dimension(); ++ d ) {
         if ( d == dimension() ) {
           type += 1;
+          if ( type == 1 << dimension() ) return;
         } else {
           coordinates[d] += 1;
           if ( coordinates[d] == sizes()[d] ) {

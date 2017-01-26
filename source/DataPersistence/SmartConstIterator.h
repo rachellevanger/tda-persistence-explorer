@@ -39,6 +39,7 @@ public:
   ///   constructor
   void
   assign ( T const& t, std::function<void(T &)> const& successor ) {
+    data_ = std::make_shared<SmartConstIterator_<T>>();
     data_ -> t_ = t;
     data_ -> successor_ = successor;
   }
