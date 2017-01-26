@@ -148,34 +148,32 @@ public:
   ///   in an iteration pattern
   void
   next ( CubicalCell & cell ) const {
+    //std::cout << cell;
     CubicalCell_ & cell_data = cell.data();
     std::vector<uint64_t> & coordinates = cell_data.coordinates_;
     uint64_t & type = cell_data.type_;
-    if ( type == 1 << dimension() ) return; // next is idempotent on end.
-    do {
-      for ( uint64_t d = 0; d <= dimension(); ++ d ) {
-        if ( d == dimension() ) {
-          type += 1;
-          if ( type == 1 << dimension() ) return;
-        } else {
-          coordinates[d] += 1;
-          if ( coordinates[d] == sizes()[d] ) {
-            coordinates[d] = 0;
-          } else { 
-            break;
-          }
+    uint64_t end_type = 1 << dimension ();
+    if ( type == end_type ) return; // next is idempotent on end.
+    for ( uint64_t d = 0; d <= dimension(); ++ d ) {
+      if ( d == dimension() ) {
+        // back at (0,0,0,...), so increment type.
+        type += 1;
+      } else {
+        coordinates[d] += 1;
+        if ( coordinates[d] > sizes()[d] || (cell.coordinates()[d] == sizes()[d] && cell.has_extent(d)) ) {
+          coordinates[d] = 0;
+        } else { 
+          break;
         }
       }
-    } while ( not valid ( cell ) ); // TODO (can this O(d) check be removed?)
+    } 
   }
 
   /// valid
   ///   Return true if cell is in complex with given sizes
-  ///   (This is used by "next" to get the correct iteration
-  ///    pattern)
   bool
   valid ( CubicalCell const& cell ) const {
-    for ( uint64_t d = 0; d <= dimension(); ++ d ) {
+    for ( uint64_t d = 0; d < dimension(); ++ d ) {
       if ( cell.coordinates()[d] > sizes()[d] ) return false;
       if ( cell.coordinates()[d] == sizes()[d] && cell.has_extent(d) ) return false; 
     }

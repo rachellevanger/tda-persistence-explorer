@@ -75,12 +75,7 @@ public:
       };
     std::sort(filtration_().begin(), filtration_().end(), comparator);
     // Index the cells
-    for ( uint64_t i = 0; i < complex().size(); ++ i ) { 
-      std::cout << "Indexing cell " << i << "\n";
-      std::cout << cell(i) << "\n";
-      cell_indexing_()[cell(i)] = i; 
-      std::cout << __LINE__ << "\n";
-    }
+    for ( uint64_t i = 0; i < complex().size(); ++ i ) cell_indexing_()[cell(i)] = i; 
   }
 
   /// complex
@@ -94,6 +89,10 @@ public:
   ///   Return the ith cell in the filtration
   CubicalCell const&
   cell ( uint64_t i ) const {
+    // if ( i >= complex().size() ) {
+    //   std::cout << "Filtration::cell(" << i << ")\n";
+    //   throw std::out_of_range("Filtration::cell index out of bounds ");
+    // }
     return filtration_()[i].first;
   }
 
@@ -101,13 +100,17 @@ public:
   ///   Given a cell, return its position in the filtration
   uint64_t
   index ( CubicalCell const& cell) const {
-    return cell_indexing_()[cell];
+    return cell_indexing_().find(cell) -> second;
   } 
 
   /// value
   ///   Return the value associated with a cell in the filtration
   double 
   value ( uint64_t i ) const {
+    // if ( i >= complex().size() ) {
+    //   std::cout << "Filtration::value(" << i << ")\n";
+    //   throw std::out_of_range("Filtration::value index out of bounds ");
+    // }
     return filtration_()[i].second;
   }
 

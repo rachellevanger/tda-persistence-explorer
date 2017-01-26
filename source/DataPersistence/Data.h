@@ -10,8 +10,6 @@
 #include "CImg.h"
 using namespace cimg_library;
 
-// TODO. not paradigmatic
-
 /// Data
 ///   This class is used to load and access data
 class Data {
@@ -88,17 +86,6 @@ public:
     for ( auto point : data ) {
       for ( uint64_t i = 0; i < dimension; ++ i ) {
         X[i].insert(point[i]);
-      }
-    }
-
-    // Create indexing functions I_i : X_i -> {0,1,2,..., card X_i - 1} 
-    std::vector<std::unordered_map<double, uint64_t>> I(dimension);
-    for ( uint64_t i = 0; i < dimension; ++ i ) {
-      uint64_t j = 0;
-      // Iterate through X_i from least to greatest.
-      for ( auto value : X[i] ) {
-        I[i][value] = j;
-        ++ j;
       }
     }
 
