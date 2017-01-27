@@ -21,7 +21,6 @@
 #include <phat/algorithms/twist_reduction.h>
 #include <phat/compute_persistence_pairs.h>
 
-#include "CubicalCell.h"
 #include "CubicalComplex.h"
 #include "Filtration.h"
 #include "Data.h"
@@ -66,40 +65,64 @@ std::string help_string =
 Filtration
 SublevelFiltration ( Data const& data ) {
   // Create cubical complex
-  CubicalComplex complex(data.resolution());
+  auto incremented_resolution = data.resolution();
+  for ( auto & size : incremented_resolution ) ++ size;
+  CubicalComplex complex(incremented_resolution);
+  //CubicalComplex complex(data.resolution());
   uint64_t D = complex.dimension();
-
-  std::unordered_map<CubicalCell, double> cell_values;
-  std::queue<CubicalCell> work_queue;
-
-  // Create top-cells and assign pixel data to them
-  for ( auto cell : complex ) { // A more efficient iteration pattern would avoid needing "if dim == D"
-    if ( cell.dimension() == D ) { 
-      cell_values[cell] = data(cell.coordinates());
-      work_queue.push(cell);
+  std::vector<double> cell_values.resize(complex.size(), std::numeric_limits<double>::infinity());
+  std::queue<uint64_t> shape_queue;
+  std::vector<uint64_t> parent_shape ( 1L << D );
+  shape_queue.push( (1L << D) - 1);
+  while ( not shape_queue . empty () ) {
+    uint64_t shape = shape_queue . front ();
+    shape_queue . pop ();
+    if ( parent_shape[shape] == 0 ) { 
+      // Initialize data.
+      uint64_t shape_begin = complex.begin(D);
+      std::vector<uint64_t> L(D);
+      std::vector<uint64_t> U(D) = complex.sizes();
+      for ( auto & x : U ) --x;
+      uint64_t i = 0;
+      for ( auto offset : Slice(L, L, U, complex.sizes())) {
+        cell_values[shape_begin + offset] = data[i];
+        ++ i;
+      }
+    } else {
+      uint64_t parent = parent_shape[shape];
+      uint64_t bd_shape_begin = complex.shape_begin(shape);
+      uint64_t cbd_shape_begin = complex.shape_begin(parent);
+      std::vector<uint64_t> bottom (D);
+      std::vector<uint64_t> bd_L(D);
+      std::vector<uint64_t> cbd_U = complex.sizes();
+      std::vector<uint64_t> top = complex.sizes();
+      // Step 1. Vanilla step
+      for ( auto offset : Slice(bottom, bottom, top, top)) {
+        cell_values[bd_shape_begin + offset] = std::min ( cell_values[ bd_shape_begin + offset ], cell_values[ cbd_shape_begin + offset ]);
+      }
+      // Step 2. Offset step
+      // So the bd gets a 1-value on its L, and the cbd gets a -1 on its U.
+      uint64_t d = 0; { uint64_t t = parent ^ shape; while ( t ) {t >>= 1; ++d;} } // collapse dimension
+      ++ bd_L[d]; -- cbd_U[d];
+      auto bd_slice = Slice(bottom, bd_L, top, top);
+      auto cbd_slice = Slice(bottom, bottom, cbd_U, top);
+      for ( auto it1 = bd_slice.begin(), it2 = cbd_slice.begin(); 
+            it1 != bd_slice.end() && it2 != cbd_slice.end(); ++it1, ++it2) {
+        cell_values[ bd_shape_begin + *it1 ] = std::min ( cell_values[ bd_shape_begin + *it1 ], cell_values[ cbd_shape_begin + *it2 ]);
+      }
     }
-  }
-
-  // Recursively determine boundary cells and assign values
-  //   * Each vertex and edge is assigned the minimum of the values on its coboundary
-  //   * The queueing prevents lower dimensional cells from being processed until after
-  //     all higher dimensional cells are processed
-  while ( not work_queue . empty () ) {
-    CubicalCell work_cell = work_queue . front (); 
-    work_queue . pop ();
-    for ( CubicalCell const& bd_cell : complex.boundary(work_cell) ) {
-      if ( cell_values.count(bd_cell) == 0 ) { 
-        work_queue.push(bd_cell);
-        cell_values[bd_cell] = cell_values[work_cell];
-      } else {
-        cell_values[bd_cell] = std::min(cell_values[bd_cell], cell_values[work_cell]);
+    for ( uint64_t d = 0, bit = 1 ; d < D: ++ d, bit <<= 1 ) {
+      if ( not ( shape & bit ) ) continue;
+      uint64_t child_shape = shape ^ bit;
+      if ( parent_shape[child_shape] == 0 ) {
+        parent_shape[child_shape] = shape;
+        push(child_shape);
       }
     }
   }
 
   // Return filtration object
-  auto valuation = [&](CubicalCell const& cell){return cell_values[cell];};
-  return Filtration ( complex, valuation, "ascending" );
+  return Filtration ( complex, cell_values, "ascending" );
 }
 
 /// SuperlevelFiltration
@@ -113,41 +136,38 @@ SublevelFiltration ( Data const& data ) {
 Filtration
 SuperlevelFiltration ( Data const& data ) {
   // Create cubical complex
-  auto decremented_resolution = data.resolution();
-  for ( auto & size : decremented_resolution ) --size;
-  CubicalComplex complex(decremented_resolution);
+  // auto decremented_resolution = data.resolution();
+  // for ( auto & size : decremented_resolution ) --size;
+  // CubicalComplex complex(decremented_resolution);
+  CubicalComplex complex(data.resolution());
   uint64_t D = complex.dimension();
-  std::unordered_map<CubicalCell, double> cell_values;
-  std::queue<CubicalCell> work_queue;
+  std::vector<double> cell_values.resize(complex.size());
 
-  // Create vertices and assign pixel data to them
-  for ( auto cell : complex ) { // A more efficient iteration pattern would avoid needing "if dim == 0"
-    if ( cell.dimension() == 0 ) {
-      cell_values[cell] = data(cell.coordinates());
-      work_queue.push(cell);
-    }
-  }
+  // // Create vertices and assign pixel data to them
+  // for ( auto cell : complex(0) ) {
+  //   cell_values[cell] = data(cell.coordinates()); // don't want to pass through coordinates here
+  //   work_queue.push(cell);
+  // }
 
-  // Recursively determine coboundary cells and assign values
-  //   * Each edge and 2-cell is assigned the minimum of the values on its boundary
-  //   * The queueing prevents higher dimensional cells from being processed until after
-  //     all lower dimensional cells are processed
-  while ( not work_queue . empty () ) {
-    CubicalCell work_cell = work_queue . front (); 
-    work_queue . pop ();
-    for ( CubicalCell const& cbd_cell : complex.coboundary(work_cell) ) {
-      if ( cell_values.count(cbd_cell) == 0 ) { 
-        work_queue.push(cbd_cell);
-        cell_values[cbd_cell] = cell_values[work_cell];
-      } else {
-        cell_values[cbd_cell] = std::min(cell_values[cbd_cell], cell_values[work_cell]);
-      }
-    }
-  }
+  // // Recursively determine coboundary cells and assign values
+  // //   * Each edge and 2-cell is assigned the minimum of the values on its boundary
+  // //   * The queueing prevents higher dimensional cells from being processed until after
+  // //     all lower dimensional cells are processed
+  // while ( not work_queue . empty () ) {
+  //   uint64_t work_cell = work_queue . front (); 
+  //   work_queue . pop ();
+  //   for ( uint64_t cbd_cell : complex.coboundary(work_cell) ) {
+  //     if ( cell_values.count(cbd_cell) == 0 ) { 
+  //       work_queue.push(cbd_cell);
+  //       cell_values[cbd_cell] = cell_values[work_cell];
+  //     } else {
+  //       cell_values[cbd_cell] = std::min(cell_values[cbd_cell], cell_values[work_cell]);
+  //     }
+  //   }
+  // }
 
   // Return filtration object
-  auto valuation = [&](CubicalCell const& cell){return cell_values[cell];};
-  return Filtration ( complex, valuation, "descending" );
+  return Filtration ( complex, cell_values, "descending" );
 }
 
 /// PersistenceViaPHAT
@@ -169,13 +189,13 @@ PersistenceViaPHAT ( Filtration const& filtration ) {
 
   // Set column for each cell
   for ( phat::index i = 0; i < num_cells; ++ i ) {
-    CubicalCell const& cell = filtration.cell(i) ;
+    uint64_t original_index = filtration.original(i) ;
     std::vector<phat::index> boundary;
-    for ( CubicalCell const& bd_cell : complex.boundary(cell) ) {
-      boundary.push_back(filtration.index(bd_cell));
+    for ( uint64_t bd_cell : complex.boundary(original_index) ) {
+      boundary.push_back(filtration.filtered(bd_cell));
     }
     std::sort(boundary.begin(), boundary.end()); // is this required?
-    boundary_matrix . set_dim( i, cell.dimension());    
+    boundary_matrix . set_dim( i, complex.dimension(original_index));    
     boundary_matrix . set_col( i, boundary );
   }
 

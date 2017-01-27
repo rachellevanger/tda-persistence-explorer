@@ -5,6 +5,8 @@
 #ifndef DATAPERSISTENCE_COMMON_H
 #define DATAPERSISTENCE_COMMON_H
 
+#include <cstdint>
+#include <numeric>
 #include <memory>
 #include <fstream>
 #include <string>
@@ -14,7 +16,8 @@
 #include <algorithm>
 #include <functional>
 #include <queue>
+#include <limits>
 #include <boost/functional/hash.hpp>
-#include <stdint.h>
+#include <boost/iterator/counting_iterator.hpp>
 
 #endif

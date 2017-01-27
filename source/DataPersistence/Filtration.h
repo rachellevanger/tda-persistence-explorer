@@ -8,7 +8,6 @@
 #include "common.h"
 
 #include "CubicalComplex.h"
-#include "CubicalCell.h"
 
 /// Filtration
 ///   A filtration of a complex is a total ordering of its cells such 
@@ -25,8 +24,9 @@
 ///   Underlying data for Filtration class
 struct Filtration_ {
   CubicalComplex complex_;
-  std::vector<std::pair<CubicalCell, double>> filtration_;
-  std::unordered_map<CubicalCell, uint64_t> cell_indexing_;
+  std::vector<uint64_t> original_index_from_filtration_index_;
+  std::vector<uint64_t> filtration_index_from_original_index_;
+  std::vector<double> values_; // indexed by filtration ordering.
 };
 
 /// Filtration
@@ -43,25 +43,21 @@ public:
   ///     to either an ascending or descending sort of provided values
   ///   Inputs:
   ///     complex   : complex associated with filtration
-  ///     valuator  : a function which takes a CubicalCell and returns a value
   ///     direction : either "ascending" or "descending" (gives desired ordering of values)
   Filtration ( CubicalComplex complex,
-               std::function<double(CubicalCell const&)> valuator,
+               std::vector<double> original_values,
                std::string const& direction ) {
-    assign(complex, valuator, direction);
+    assign(complex, original_values, direction);
   }
 
   // Filtration
   //   constructor
   void
   assign ( CubicalComplex complex_in,
-           std::function<double(CubicalCell const&)> valuator,
+           std::vector<double> original_values,
            std::string const& direction ) {
     data_ = std::make_shared<Filtration_>();
     complex_() = complex_in;
-    // Initialize the filtration
-    typedef std::pair<CubicalCell, double> CubicalCellValue;
-    for ( auto cell : complex() ) filtration_() . push_back ( { cell, valuator(cell) } );
     // Prepare the sort
     bool ascending_or_descending;
     if ( direction == "ascending" ) ascending_or_descending = false;
@@ -69,13 +65,24 @@ public:
     if ( direction != "ascending" && direction != "descending" ) {
       throw std::runtime_error("Filtration:" + direction + " is not a valid mode");
     }
-    auto comparator = [&](CubicalCellValue const& a, CubicalCellValue const& b){
-        if ( a.second == b.second ) return a.first < b.first;
-        return ascending_or_descending != (a.second < b.second);
-      };
-    std::sort(filtration_().begin(), filtration_().end(), comparator);
-    // Index the cells
-    for ( uint64_t i = 0; i < complex().size(); ++ i ) cell_indexing_()[cell(i)] = i; 
+    auto comparator = [&](uint64_t a, uint64_t b) {
+      auto value_a = original_values[a];
+      auto value_b = original_values[b];
+      if ( value_a == value_b ) return a < b;
+      return ascending_or_descending != (value_a < value_b);
+    };
+    // Setup "original_index_from_filtration_index_"
+    auto & X = original_index_from_filtration_index_();
+    X.resize(complex_().size());     // X == [0,0,0,...,0]
+    std::iota(X.begin(), X.end(), 0 ); // X == [0,1,2,...,complex.size()-1]
+    std::sort(X.begin(), X.end(), comparator);
+    // Setup "filtration_index_from_original_index_"
+    auto & Y = filtration_index_from_original_index_();
+    for ( uint64_t x = 0; x < X.size(); ++ x) Y[X[x]] = x; 
+    // Setup "values_"
+    auto & V = values_();
+    V.resize(complex_().size());
+    for ( uint64_t i = 0; i < V.size(); ++ i) V[i] = original_values[X[i]]; 
   }
 
   /// complex
@@ -87,56 +94,55 @@ public:
 
   /// cell
   ///   Return the ith cell in the filtration
-  CubicalCell const&
-  cell ( uint64_t i ) const {
-    // if ( i >= complex().size() ) {
-    //   std::cout << "Filtration::cell(" << i << ")\n";
-    //   throw std::out_of_range("Filtration::cell index out of bounds ");
-    // }
-    return filtration_()[i].first;
+  uint64_t
+  original ( uint64_t filtered ) const {
+    return original_index_from_filtration_index_()[filtered];
   }
 
   /// index
   ///   Given a cell, return its position in the filtration
   uint64_t
-  index ( CubicalCell const& cell) const {
-    return cell_indexing_().find(cell) -> second;
+  filtered ( uint64_t original) const {
+    return filtration_index_from_original_index_()[original];
   } 
 
   /// value
-  ///   Return the value associated with a cell in the filtration
+  ///   Return the value associated with an index in the filtration
   double 
-  value ( uint64_t i ) const {
-    // if ( i >= complex().size() ) {
-    //   std::cout << "Filtration::value(" << i << ")\n";
-    //   throw std::out_of_range("Filtration::value index out of bounds ");
-    // }
-    return filtration_()[i].second;
+  value ( uint64_t filtered ) const {
+    return values_(filtered);
   }
 
 private:
 
   std::shared_ptr<Filtration_> data_;
 
-  /// complex
-  ///   Return the complex the filtration is associated to
+  /// complex_
+  ///   accessor for data_ -> complex_
   CubicalComplex &
   complex_ ( void ) {
     return data_ -> complex_;
   }
 
-  /// filtration
-  ///   accessor for data_ -> filtation_;
-  std::vector<std::pair<CubicalCell, double>> &
-  filtration_ ( void ) const {
-    return data_ -> filtration_;
+  /// original_order_from_filtration_order_
+  ///   accessor for data_ -> original_order_from_filtration_order_
+  std::vector<uint64_t> &
+  original_index_from_filtration_index_ ( void ) const {
+    return data_ -> original_order_from_filtration_order_;
   }
 
-  /// cell_indexing
-  ///   accessor for data_ -> filtation_;
-  std::unordered_map<CubicalCell, uint64_t> &
-  cell_indexing_ ( void ) const {
-    return data_ -> cell_indexing_;
+  /// filtration_order_from_original_order_
+  ///   accessor for data_ -> filtration_order_from_original_order_
+  std::vector<uint64_t> &
+  filtration_index_from_original_index_ ( void ) const {
+    return data_ -> filtration_order_from_original_order_;
+  }
+
+  /// values_
+  ///   accessor for data_ -> values_
+  double &
+  values_ ( void ) const {
+    return data_ -> values_;
   }
 
 };

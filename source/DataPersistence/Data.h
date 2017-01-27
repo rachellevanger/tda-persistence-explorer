@@ -133,20 +133,10 @@ public:
 
     // Store the values in an array.
     // Since the data is sorted, the indexing of this array is meaningful.
-    auto values = std::make_shared<std::vector<double>>();
-    for ( auto point : data ) {
-      values -> push_back ( point[dimension] );
+    data_ . resize ( N );
+    for ( uint64_t i = 0; i < N; ++ i ) {
+      data_[i] = data[i][dimension];
     }
-
-    // Store the data
-    data_ = [=](std::vector<uint64_t> const& coordinates) {
-      // Convert coordinates to index
-      uint64_t idx = 0;
-      for ( int i = 0; i < dimension; ++ i ) {
-        idx += coordinates[i] * place_values[i];
-      }
-      return (*values)[idx];
-    };
   }
 
   /// resolution
@@ -157,13 +147,20 @@ public:
     return resolution_;
   }
 
-  /// operator ()
-  ///   Given 0 <= x < width() and 0 <= y < height(), 
-  ///   return pixel data at position (x,y)
+  /// operator []
+  ///   direct data access
   double
-  operator () ( std::vector<uint64_t> const& coordinates ) const {
-    return data_(coordinates);
+  operator [] ( uint64_t i ) const {
+    return data_[i];
   }
+
+  // /// operator ()
+  // ///   Given 0 <= x < width() and 0 <= y < height(), 
+  // ///   return pixel data at position (x,y)
+  // double
+  // operator () ( std::vector<uint64_t> const& coordinates ) const {
+  //   return data_(coordinates);
+  // }
 
   /// operator <<
   ///   print summary
@@ -175,7 +172,7 @@ public:
   }
 
 private:
-  std::function<double(std::vector<uint64_t>const&)> data_;
+  std::vector<double> data_;
   std::vector<uint64_t> resolution_;
 };
 
