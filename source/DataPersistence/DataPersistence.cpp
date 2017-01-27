@@ -24,6 +24,7 @@
 #include "CubicalComplex.h"
 #include "Filtration.h"
 #include "Data.h"
+#include "Slice.h"
 
 std::string help_string = 
 " Usage: DataPersistence <input_filename> <output_filename> <mode> \n"
@@ -70,7 +71,7 @@ SublevelFiltration ( Data const& data ) {
   CubicalComplex complex(incremented_resolution);
   //CubicalComplex complex(data.resolution());
   uint64_t D = complex.dimension();
-  std::vector<double> cell_values.resize(complex.size(), std::numeric_limits<double>::infinity());
+  std::vector<double> cell_values (complex.size(), std::numeric_limits<double>::infinity());
   std::queue<uint64_t> shape_queue;
   std::vector<uint64_t> parent_shape ( 1L << D );
   shape_queue.push( (1L << D) - 1);
@@ -79,9 +80,9 @@ SublevelFiltration ( Data const& data ) {
     shape_queue . pop ();
     if ( parent_shape[shape] == 0 ) { 
       // Initialize data.
-      uint64_t shape_begin = complex.begin(D);
+      uint64_t shape_begin = complex.shape_begin(shape);
       std::vector<uint64_t> L(D);
-      std::vector<uint64_t> U(D) = complex.sizes();
+      std::vector<uint64_t> U = complex.sizes();
       for ( auto & x : U ) --x;
       uint64_t i = 0;
       for ( auto offset : Slice(L, L, U, complex.sizes())) {
@@ -111,12 +112,12 @@ SublevelFiltration ( Data const& data ) {
         cell_values[ bd_shape_begin + *it1 ] = std::min ( cell_values[ bd_shape_begin + *it1 ], cell_values[ cbd_shape_begin + *it2 ]);
       }
     }
-    for ( uint64_t d = 0, bit = 1 ; d < D: ++ d, bit <<= 1 ) {
+    for ( uint64_t d = 0, bit = 1 ; d < D; ++ d, bit <<= 1 ) {
       if ( not ( shape & bit ) ) continue;
       uint64_t child_shape = shape ^ bit;
       if ( parent_shape[child_shape] == 0 ) {
         parent_shape[child_shape] = shape;
-        push(child_shape);
+        shape_queue.push(child_shape);
       }
     }
   }
@@ -141,7 +142,7 @@ SuperlevelFiltration ( Data const& data ) {
   // CubicalComplex complex(decremented_resolution);
   CubicalComplex complex(data.resolution());
   uint64_t D = complex.dimension();
-  std::vector<double> cell_values.resize(complex.size());
+  std::vector<double> cell_values(complex.size());
 
   // // Create vertices and assign pixel data to them
   // for ( auto cell : complex(0) ) {
@@ -225,14 +226,15 @@ SavePersistenceResults ( Filtration const& filtration,
   for( int i = 0; i < pairs.get_num_pairs(); ++ i ){
     auto birth_cell_index = pairs.get_pair(i).first;
     auto death_cell_index = pairs.get_pair(i).second;
-    auto birth_cell = filtration.cell(birth_cell_index);
+    auto birth_cell = filtration.original(birth_cell_index);
     auto birth_value = filtration.value(birth_cell_index);
-    auto death_cell = filtration.cell(death_cell_index);
+    auto death_cell = filtration.original(death_cell_index);
     auto death_value = filtration.value(death_cell_index);
-    auto birth_coordinates = [&](uint64_t d) { return birth_cell.coordinates().size() <= d ? 0 : birth_cell.coordinates()[d]; };
-    auto death_coordinates = [&](uint64_t d) { return death_cell.coordinates().size() <= d ? 0 : death_cell.coordinates()[d]; };
+    auto coordinates = [&](uint64_t cell) { return filtration.complex().coordinates(cell); };
+    auto birth_coordinates = [&](uint64_t d) { auto c = coordinates(birth_cell); return c.size() <= d ? 0 : c[d]; };
+    auto death_coordinates = [&](uint64_t d) { auto c = coordinates(death_cell); return c.size() <= d ? 0 : c[d]; };
     if ( birth_value == death_value ) continue;
-    outfile << birth_cell.dimension() << ", ";
+    outfile << filtration.complex().dimension(birth_cell) << ", ";
     outfile << birth_value << ", ";
     outfile << birth_coordinates(0) << ", ";
     outfile << birth_coordinates(1) << ", ";

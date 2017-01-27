@@ -43,11 +43,15 @@ public:
   ///   Load image given image_filename
   void
   loadImage ( std::string const& image_filename ) { 
-    auto image = std::make_shared<CImg<unsigned char>> (image_filename.c_str());
+    auto image = CImg<unsigned char> (image_filename.c_str());
     resolution_ . resize ( 2 );
-    resolution_[0] = image -> width();
-    resolution_[1] = image -> height();   
-    data_ = [=](std::vector<uint64_t> const& coordinates) {return (*image)(coordinates[0],coordinates[1],0,1);}; 
+    resolution_[0] = image . width();
+    resolution_[1] = image . height(); 
+    data_ . resize ( resolution_[0] * resolution_[1] );
+    uint64_t k = 0; 
+    for ( uint64_t j = 0; j < resolution_[1]; ++ j )    
+      for ( uint64_t i = 0; i < resolution_[0]; ++ i )
+        data_[k++] = image(i,j,0,1); 
   }
 
   /// loadData

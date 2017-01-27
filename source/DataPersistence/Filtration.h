@@ -72,15 +72,15 @@ public:
       return ascending_or_descending != (value_a < value_b);
     };
     // Setup "original_index_from_filtration_index_"
-    auto & X = original_index_from_filtration_index_();
+    auto & X = data_ -> original_index_from_filtration_index_;
     X.resize(complex_().size());     // X == [0,0,0,...,0]
     std::iota(X.begin(), X.end(), 0 ); // X == [0,1,2,...,complex.size()-1]
     std::sort(X.begin(), X.end(), comparator);
     // Setup "filtration_index_from_original_index_"
-    auto & Y = filtration_index_from_original_index_();
+    auto & Y = data_ -> filtration_index_from_original_index_;
     for ( uint64_t x = 0; x < X.size(); ++ x) Y[X[x]] = x; 
     // Setup "values_"
-    auto & V = values_();
+    auto & V = data_ -> values_;
     V.resize(complex_().size());
     for ( uint64_t i = 0; i < V.size(); ++ i) V[i] = original_values[X[i]]; 
   }
@@ -92,14 +92,14 @@ public:
     return data_ -> complex_;
   }
 
-  /// cell
+  /// original
   ///   Return the ith cell in the filtration
   uint64_t
   original ( uint64_t filtered ) const {
     return original_index_from_filtration_index_()[filtered];
   }
 
-  /// index
+  /// filtered
   ///   Given a cell, return its position in the filtration
   uint64_t
   filtered ( uint64_t original) const {
@@ -110,7 +110,7 @@ public:
   ///   Return the value associated with an index in the filtration
   double 
   value ( uint64_t filtered ) const {
-    return values_(filtered);
+    return values_()[filtered];
   }
 
 private:
@@ -124,23 +124,23 @@ private:
     return data_ -> complex_;
   }
 
-  /// original_order_from_filtration_order_
-  ///   accessor for data_ -> original_order_from_filtration_order_
-  std::vector<uint64_t> &
+  /// original_index_from_filtration_index_
+  ///   accessor for data_ -> original_index_from_filtration_index_
+  std::vector<uint64_t> const&
   original_index_from_filtration_index_ ( void ) const {
-    return data_ -> original_order_from_filtration_order_;
+    return data_ -> original_index_from_filtration_index_;
   }
 
-  /// filtration_order_from_original_order_
-  ///   accessor for data_ -> filtration_order_from_original_order_
-  std::vector<uint64_t> &
+  /// filtration_index_from_original_index_
+  ///   accessor for data_ -> filtration_index_from_original_index_
+  std::vector<uint64_t> const&
   filtration_index_from_original_index_ ( void ) const {
-    return data_ -> filtration_order_from_original_order_;
+    return data_ -> filtration_index_from_original_index_;
   }
 
   /// values_
   ///   accessor for data_ -> values_
-  double &
+  std::vector<double> const&
   values_ ( void ) const {
     return data_ -> values_;
   }
