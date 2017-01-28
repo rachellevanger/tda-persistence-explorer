@@ -39,6 +39,16 @@ public:
     for ( uint64_t i = 0; i < n; ++ i ) size_ *= C[i] - B[i];
     for ( uint64_t i = 0; i < n; ++ i ) G[i] = J[i]*(C[i] - B[i]);
     for ( uint64_t i = 0; i < n; ++ i ) address += J[i] * (B[i] - A[i]);
+    // print_vector(A, "A");
+    // print_vector(B, "B");
+    // print_vector(C, "C");
+    // print_vector(D, "D");
+    // print_vector(X, "X");
+    // print_vector(G, "G");
+    // print_vector(J, "J");
+    // std::cout << "address = " << address << "\n";
+    // std::cout << "n = " << n << "\n";
+    // std::cout << "size = " << size_ << "\n";
   }
 
   bool

@@ -56,6 +56,7 @@ public:
   assign ( CubicalComplex complex_in,
            std::vector<double> original_values,
            std::string const& direction ) {
+    std::cout << "Filtration constructing...\n";
     data_ = std::make_shared<Filtration_>();
     complex_() = complex_in;
     // Prepare the sort
@@ -78,11 +79,13 @@ public:
     std::sort(X.begin(), X.end(), comparator);
     // Setup "filtration_index_from_original_index_"
     auto & Y = data_ -> filtration_index_from_original_index_;
+    Y.resize(complex_().size());
     for ( uint64_t x = 0; x < X.size(); ++ x) Y[X[x]] = x; 
     // Setup "values_"
     auto & V = data_ -> values_;
     V.resize(complex_().size());
     for ( uint64_t i = 0; i < V.size(); ++ i) V[i] = original_values[X[i]]; 
+    std::cout << "Filtration object constructed.\n";
   }
 
   /// complex

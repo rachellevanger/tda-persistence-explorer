@@ -184,13 +184,20 @@ public:
     return result;
   }
 
+  /// cell_type
+  ///   Give shape code
+  ///   Interpretation: if ( shape & ( 1 << i ) ) { then the cell has extent in dimension i }
+  uint64_t
+  cell_type ( CellIndex cell ) const {
+    return cell / type_size_();
+  }
+
   /// cell_shape
   ///   Give shape code
   ///   Interpretation: if ( shape & ( 1 << i ) ) { then the cell has extent in dimension i }
   uint64_t
   cell_shape ( CellIndex cell ) const {
-    uint64_t type = cell / type_size_();
-    uint64_t shape = ST_() [ type ]; 
+    uint64_t shape = ST_() [ cell_type(cell) ]; 
     return shape;
   }
 
@@ -203,6 +210,8 @@ public:
     uint64_t type = TS_() [ shape ];
     lldiv_t coordinate = {(int64_t)cell, 0}; // (quotient, remainder), see std::div
     for ( uint64_t d = 0, bit = 1; d < dimension(); ++ d, bit <<= 1L ) {
+      // Determine dth coordinate
+      coordinate = std::div(coordinate.quot, sizes()[d] ); 
       // If cell has no extent in this dimension, no boundaries.
       if ( not (shape & bit) ) continue;
       uint64_t offset_cell = cell + type_size_() * ( TS_() [ shape ^ bit ] - type );
@@ -210,7 +219,6 @@ public:
       // It is always the case that such a cell has a boundary to the left.
       bd.push_back( offset_cell );
       // Check if there is a boundary to the right:
-      coordinate = std::div(coordinate.quot, sizes()[d] ); 
       if ( coordinate.rem + 1 < sizes()[d]) { 
         bd.push_back( offset_cell + PV_()[d]);
       }
@@ -227,6 +235,8 @@ public:
     uint64_t type = TS_() [ shape ];
     lldiv_t coordinate = {(int64_t)cell, 0};
     for ( uint64_t d = 0, bit = 1; d < dimension(); ++ d, bit <<= 1L ) {
+      // Determine dth coordinate
+      coordinate = std::div(coordinate.quot, sizes()[d] ); 
       // If cell has extent in this dimension, no coboundaries.
       if ( shape & bit ) continue;
       uint64_t offset_cell = cell + type_size_() * ( TS_() [ shape ^ bit ] - type );
@@ -234,7 +244,6 @@ public:
       // It is always the case that such a cell has a coboundary to the right.
       cbd.push_back( offset_cell );
       // Check if there is a coboundary to the left:
-      coordinate = std::div(coordinate.quot, sizes()[d] ); 
       if ( coordinate.rem > 0 ) { 
         cbd.push_back( offset_cell - PV_()[d]);
       }
@@ -275,6 +284,15 @@ public:
     for ( auto x : stream_me.sizes() ) stream << x << ",";
     return stream <<  "])";
   }
+
+  /// print_cell (for debugging )
+  void
+  print_cell (uint64_t cell_index) const {
+    std::cout << cell_index << "\n";
+    std::cout << "  coordinates(" << cell_index << ") = [";
+    for ( auto x : coordinates(cell_index) ) std::cout << x << ", "; std::cout << "]\n";
+    std::cout << "  shape(" << cell_index << ") = " << cell_shape(cell_index) << "\n";
+  };
 
 private:
   std::shared_ptr<CubicalComplex_> data_;

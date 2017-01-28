@@ -5,6 +5,7 @@
 #ifndef DATAPERSISTENCE_COMMON_H
 #define DATAPERSISTENCE_COMMON_H
 
+#include <iostream>
 #include <cstdint>
 #include <numeric>
 #include <memory>
@@ -19,5 +20,12 @@
 #include <limits>
 #include <boost/functional/hash.hpp>
 #include <boost/iterator/counting_iterator.hpp>
+
+// Debug
+
+inline void
+print_vector (std::vector<uint64_t> const& v, std::string name) { 
+  std::cout << name << " == ["; for ( auto x : v ) std::cout << x << ","; std::cout << "]\n";
+}
 
 #endif
