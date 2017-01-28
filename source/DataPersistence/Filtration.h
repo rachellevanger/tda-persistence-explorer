@@ -27,6 +27,7 @@ struct Filtration_ {
   std::vector<uint64_t> original_index_from_filtration_index_;
   std::vector<uint64_t> filtration_index_from_original_index_;
   std::vector<double> values_; // indexed by filtration ordering.
+  uint64_t finite_size_;
 };
 
 /// Filtration
@@ -53,12 +54,11 @@ public:
   // Filtration
   //   constructor
   void
-  assign ( CubicalComplex complex_in,
+  assign ( CubicalComplex complex,
            std::vector<double> original_values,
            std::string const& direction ) {
-    std::cout << "Filtration constructing...\n";
     data_ = std::make_shared<Filtration_>();
-    complex_() = complex_in;
+    data_ -> complex_ = complex;
     // Prepare the sort
     bool ascending_or_descending;
     if ( direction == "ascending" ) ascending_or_descending = false;
@@ -84,8 +84,9 @@ public:
     // Setup "values_"
     auto & V = data_ -> values_;
     V.resize(complex_().size());
-    for ( uint64_t i = 0; i < V.size(); ++ i) V[i] = original_values[X[i]]; 
-    std::cout << "Filtration object constructed.\n";
+    for ( uint64_t i = 0; i < V.size(); ++ i) V[i] = original_values[X[i]];
+    // Compute "finite_size_" 
+    data_ -> finite_size_ = std::lower_bound(V.begin(), V.end(), std::numeric_limits<double>::infinity()) - V.begin();
   }
 
   /// complex
@@ -116,14 +117,20 @@ public:
     return values_()[filtered];
   }
 
+  /// finite_size
+  ///   Return the number of cells with finite values
+  uint64_t
+  finite_size ( void ) const {
+    return finite_size_();
+  }
 private:
 
   std::shared_ptr<Filtration_> data_;
 
   /// complex_
   ///   accessor for data_ -> complex_
-  CubicalComplex &
-  complex_ ( void ) {
+  CubicalComplex const&
+  complex_ ( void ) const {
     return data_ -> complex_;
   }
 
@@ -146,6 +153,13 @@ private:
   std::vector<double> const&
   values_ ( void ) const {
     return data_ -> values_;
+  }
+
+  /// finite_size_
+  ///   accessor for data_ -> finite_size_
+  uint64_t
+  finite_size_ ( void ) const {
+    return data_ -> finite_size_;
   }
 
 };

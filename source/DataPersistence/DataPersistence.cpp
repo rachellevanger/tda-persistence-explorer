@@ -313,7 +313,7 @@ PersistenceViaPHAT ( Filtration const& filtration ) {
   phat::boundary_matrix< phat::vector_vector > boundary_matrix;
 
   // Set the number of columns (i.e. number of cells)
-  uint64_t num_cells = complex.size();
+  uint64_t num_cells = filtration.finite_size();
   boundary_matrix . set_num_cols(num_cells);
 
   std::cout << "Building PHAT boundary matrix\n";
