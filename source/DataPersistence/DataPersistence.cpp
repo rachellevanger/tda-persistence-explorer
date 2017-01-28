@@ -8,7 +8,9 @@
 //      * fixed non-square image bug 
 //      * improved make system
 //   2016-12-15 Shaun Harker
-//      * generalized to higher dimensions
+//      * generalized to higher dimensions (WIP)
+//   2017-01-27 Shaun Harker
+//      * optimized using arrays
 
 // USE FLOATING POINT DATA
 // x y z value \n FORMAT
@@ -184,7 +186,6 @@ SublevelFiltration ( Data const& data ) {
   // 
   //    The following algorithm implements these ideas.
   //    It could stand to be written more cleanly. 
-  std::cout << "Creating sublevel filtration.\n";
   // Create cubical complex using "wrapping trick"
   auto incremented_resolution = data.resolution();
   for ( auto & size : incremented_resolution ) ++ size; // wrapping trick
@@ -247,8 +248,6 @@ SublevelFiltration ( Data const& data ) {
       }
     }
   }
-
-  std::cout << "Sublevel valuations created.\n";
 
   // Return filtration object
   return Filtration ( complex, V, "ascending" );
@@ -316,9 +315,6 @@ PersistenceViaPHAT ( Filtration const& filtration ) {
   uint64_t num_cells = filtration.finite_size();
   boundary_matrix . set_num_cols(num_cells);
 
-  std::cout << "Building PHAT boundary matrix\n";
-  std::cout << "num_cell = " << num_cells << "\n";
-
   // Set column for each cell
   for ( phat::index i = 0; i < num_cells; ++ i ) {
     uint64_t original_index = filtration.original(i) ;
@@ -331,7 +327,6 @@ PersistenceViaPHAT ( Filtration const& filtration ) {
     boundary_matrix . set_col (i, boundary );
   }
 
-  std::cout << "Calling PHAT\n";
   // Call PHAT
   phat::persistence_pairs pairs;  
   phat::compute_persistence_pairs< phat::twist_reduction >( pairs, boundary_matrix );
