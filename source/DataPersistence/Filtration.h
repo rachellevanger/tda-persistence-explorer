@@ -61,8 +61,8 @@ public:
     data_ -> complex_ = complex;
     // Prepare the sort
     bool ascending_or_descending;
-    if ( direction == "ascending" ) ascending_or_descending = false;
-    if ( direction == "descending" ) ascending_or_descending = true;
+    if ( direction == "ascending" ) ascending_or_descending = true;
+    if ( direction == "descending" ) ascending_or_descending = false;
     if ( direction != "ascending" && direction != "descending" ) {
       throw std::runtime_error("Filtration:" + direction + " is not a valid mode");
     }
@@ -70,7 +70,7 @@ public:
       auto value_a = original_values[a];
       auto value_b = original_values[b];
       if ( value_a == value_b ) return a < b;
-      return ascending_or_descending != (value_a < value_b);
+      return ascending_or_descending == (value_a < value_b);
     };
     // Setup "original_index_from_filtration_index_"
     auto & X = data_ -> original_index_from_filtration_index_;
@@ -86,7 +86,9 @@ public:
     V.resize(complex_().size());
     for ( uint64_t i = 0; i < V.size(); ++ i) V[i] = original_values[X[i]];
     // Compute "finite_size_" 
-    data_ -> finite_size_ = std::lower_bound(V.begin(), V.end(), std::numeric_limits<double>::infinity()) - V.begin();
+    data_ -> finite_size_ = ascending_or_descending ? 
+      std::lower_bound(V.begin(), V.end(), std::numeric_limits<double>::infinity(), std::less<double>())- V.begin() :
+      std::lower_bound(V.begin(), V.end(), -std::numeric_limits<double>::infinity(), std::greater<double>())- V.begin();
   }
 
   /// complex

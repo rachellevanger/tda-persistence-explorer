@@ -197,13 +197,13 @@ SublevelFiltration ( Data const& data ) {
   std::vector<double> V (complex.size(), std::numeric_limits<double>::infinity());
 
   std::queue<uint64_t> shape_queue;
-  std::vector<uint64_t> parent_shape ( 1L << D );
+  std::vector<uint64_t> parent_shape ( 1L << D, -1 );
   shape_queue.push( (1L << D) - 1);
 
   while ( not shape_queue . empty () ) {
     uint64_t shape = shape_queue . front ();
     shape_queue . pop ();
-    if ( parent_shape[shape] == 0 ) { 
+    if ( parent_shape[shape] == -1 ) { 
       // Initialize data.
       uint64_t shape_begin = complex.shape_begin(shape);
       std::vector<uint64_t> L(D);
@@ -228,7 +228,7 @@ SublevelFiltration ( Data const& data ) {
         V[bd_shape_begin + offset] = std::min ( V[ bd_shape_begin + offset ], V[ cbd_shape_begin + offset ]);
       }
       // RIGHT-PROPAGATE
-      uint64_t d = 0; { uint64_t t = parent ^ shape; while ( t >>= 1 ) ++d; } // collapse dimension
+      uint64_t d = 0; { uint64_t t = parent ^ shape; while ( t >>= 1 ) ++d; } // determine collapse dimension
       ++ bd_L[d]; -- cbd_U[d];
       auto bd_slice = Slice(bottom, bd_L, top, top);
       auto cbd_slice = Slice(bottom, bottom, cbd_U, top);
@@ -242,7 +242,7 @@ SublevelFiltration ( Data const& data ) {
     for ( uint64_t d = 0, bit = 1 ; d < D; ++ d, bit <<= 1 ) {
       if ( not ( shape & bit ) ) continue;
       uint64_t child_shape = shape ^ bit;
-      if ( parent_shape[child_shape] == 0 ) {
+      if ( parent_shape[child_shape] == -1 ) {
         parent_shape[child_shape] = shape;
         shape_queue.push(child_shape);
       }
@@ -263,37 +263,89 @@ SublevelFiltration ( Data const& data ) {
 ///     a Filtration object
 Filtration
 SuperlevelFiltration ( Data const& data ) {
-  // Create cubical complex
-  // auto decremented_resolution = data.resolution();
-  // for ( auto & size : decremented_resolution ) --size;
-  // CubicalComplex complex(decremented_resolution);
   CubicalComplex complex(data.resolution());
   uint64_t D = complex.dimension();
-  std::vector<double> V(complex.size());
 
-  // // Create vertices and assign pixel data to them
-  // for ( auto cell : complex(0) ) {
-  //   V[cell] = data(cell.coordinates()); // don't want to pass through coordinates here
-  //   work_queue.push(cell);
-  // }
+  // Initialize array to hold cell values for 
+  // sublevel filtration with "+inf" values:
+  std::vector<double> V (complex.size(), std::numeric_limits<double>::infinity());
 
-  // // Recursively determine coboundary cells and assign values
-  // //   * Each edge and 2-cell is assigned the minimum of the values on its boundary
-  // //   * The queueing prevents higher dimensional cells from being processed until after
-  // //     all lower dimensional cells are processed
-  // while ( not work_queue . empty () ) {
-  //   uint64_t work_cell = work_queue . front (); 
-  //   work_queue . pop ();
-  //   for ( uint64_t cbd_cell : complex.coboundary(work_cell) ) {
-  //     if ( V.count(cbd_cell) == 0 ) { 
-  //       work_queue.push(cbd_cell);
-  //       V[cbd_cell] = V[work_cell];
-  //     } else {
-  //       V[cbd_cell] = std::min(V[cbd_cell], V[work_cell]);
-  //     }
-  //   }
-  // }
+  std::queue<uint64_t> shape_queue;
+  std::vector<uint64_t> parent_shape ( 1L << D, -1 );
+  shape_queue.push(0);
 
+  while ( not shape_queue . empty () ) {
+    uint64_t shape = shape_queue . front ();
+    shape_queue . pop ();
+    if ( parent_shape[shape] == -1 ) { 
+      // Initialize data.
+      uint64_t shape_begin = complex.shape_begin(shape);
+      std::vector<uint64_t> L(D);
+      std::vector<uint64_t> U = complex.sizes();
+      uint64_t i = 0;
+      for ( auto offset : Slice(L, L, U, complex.sizes())) {
+        V[shape_begin + offset] = data[i];
+        ++ i;
+      }
+    } else {
+      // Propagate step
+
+      // Prepare slices
+      uint64_t parent = parent_shape[shape];
+      uint64_t child_shape_begin = complex.shape_begin(shape);
+      uint64_t parent_shape_begin = complex.shape_begin(parent);
+      std::vector<uint64_t> bottom (D);
+      std::vector<uint64_t> top = complex.sizes();
+      uint64_t d = 0; { uint64_t t = parent ^ shape; while ( t >>= 1 ) ++d; } // determine collapse dimension
+      std::vector<uint64_t> L(D);
+      ++ L[d];
+      std::vector<uint64_t> U = complex.sizes();
+      -- U[d];
+
+      // LEFT-PROPAGATE
+      for ( auto offset : Slice(bottom, bottom, top, top)) {
+        V[child_shape_begin + offset] = std::min ( V[ child_shape_begin + offset ], V[ parent_shape_begin + offset ]);
+      }
+
+      // RIGHT-PROPAGATE
+      auto child_slice = Slice(bottom, bottom, U, top);
+      auto parent_slice = Slice(bottom, L, top, top);
+      for ( auto it1 = child_slice.begin(), 
+                 it2 = parent_slice.begin(); 
+                 it1 != child_slice.end() && 
+                 it2 != parent_slice.end(); 
+                 ++it1, 
+                 ++it2) {
+        V[ child_shape_begin + *it1 ] = std::min ( V[ child_shape_begin + *it1 ], V[ parent_shape_begin + *it2 ]);
+      }
+    }
+    // Determine other propagation steps (Hypercube Traversal, breadth-first)
+    for ( uint64_t d = 0, bit = 1 ; d < D; ++ d, bit <<= 1 ) {
+      if ( shape & bit ) continue; // cannot extend in this dimension, skip
+      uint64_t child_shape = shape ^ bit;
+      if ( parent_shape[child_shape] == -1 ) {
+        parent_shape[child_shape] = shape;
+        shape_queue.push(child_shape);
+      }
+    }
+  }
+
+  // Overwrite right-edge wrapper cells with -inf
+  for ( uint64_t d = 0; d < D; ++ d ) {
+    std::vector<uint64_t> bottom(D);
+    std::vector<uint64_t> U(D);
+    std::vector<uint64_t> top = complex.sizes();
+    U[d] = top[d] - 1;
+    auto edge_slice = Slice(bottom, U, top, top);
+    for ( uint64_t shape = 0; shape < 1L << D; ++ shape ) {
+      if ( shape & (1 << d) ) { // The right-edge is wrap iff shape has extent in this dimension
+        uint64_t shape_begin = complex.shape_begin(shape);
+        for ( auto offset : Slice(bottom, U, top, top)) {
+          V[shape_begin + offset] = -std::numeric_limits<double>::infinity();
+        }
+      }
+    }
+  }
   // Return filtration object
   return Filtration ( complex, V, "descending" );
 }

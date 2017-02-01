@@ -21,63 +21,54 @@ class SliceIterator {
 public:
   // default constructor gives "end"
   SliceIterator ( void ) {
-    address = -1;
+    address_ = -1;
   }
   // parameter constructor gives "begin"
   SliceIterator ( std::vector<uint64_t> const& A,
             std::vector<uint64_t> const& B,
             std::vector<uint64_t> const& C,
-            std::vector<uint64_t> const& D) : A(A), B(B), C(C), D(D) {
-    n = A.size();
-    address = 0;
-    X = B;
-    G.resize(n); // G for "gap"
-    J.resize(n, 1); // J for "jump"
-    for ( uint64_t i = 0; i < n; ++ i ) G[i] = D[i] - A[i];
-    std::partial_sum (G.begin(), G.end()-1, J.begin()+1, std::multiplies<uint64_t>());
+            std::vector<uint64_t> const& D) : A_(A), B_(B), C_(C), D_(D) {
+    dim_ = A_.size();
+    address_ = 0;
+    X_ = B_;
+    G_.resize(dim_); // G for "gap"
+    J_.resize(dim_, 1); // J for "jump"
+    for ( uint64_t i = 0; i < dim_; ++ i ) G_[i] = D_[i] - A_[i];
+    std::partial_sum (G_.begin(), G_.end()-1, J_.begin()+1, std::multiplies<uint64_t>());
     size_ = 1;
-    for ( uint64_t i = 0; i < n; ++ i ) size_ *= C[i] - B[i];
-    for ( uint64_t i = 0; i < n; ++ i ) G[i] = J[i]*(C[i] - B[i]);
-    for ( uint64_t i = 0; i < n; ++ i ) address += J[i] * (B[i] - A[i]);
-    // print_vector(A, "A");
-    // print_vector(B, "B");
-    // print_vector(C, "C");
-    // print_vector(D, "D");
-    // print_vector(X, "X");
-    // print_vector(G, "G");
-    // print_vector(J, "J");
-    // std::cout << "address = " << address << "\n";
-    // std::cout << "n = " << n << "\n";
-    // std::cout << "size = " << size_ << "\n";
+    for ( uint64_t i = 0; i < dim_; ++ i ) size_ *= C_[i] - B_[i];
+    for ( uint64_t i = 0; i < dim_; ++ i ) G_[i] = J_[i]*(C_[i] - B_[i]);
+    for ( uint64_t i = 0; i < dim_; ++ i ) address_ += J_[i] * (B_[i] - A_[i]);
+    if ( size_ == 0 ) address_ = -1;
   }
 
   bool
   operator == ( SliceIterator const& rhs ) const {
-    return address == rhs.address;
+    return address_ == rhs.address_;
   }
 
   bool
   operator != ( SliceIterator const& rhs ) const {
-    return address != rhs.address;
+    return address_ != rhs.address_;
   }
 
   SliceIterator &
   operator ++ ( void ) {
-    for ( int i = 0; i < n; ++ i ) {
-      ++ X[i];
-      address += J[i];
-      if ( X[i] == C[i] ) { 
-        X[i] = B[i];
-        address -= G[i];
+    for ( int i = 0; i < dim_; ++ i ) {
+      ++ X_[i];
+      address_ += J_[i];
+      if ( X_[i] == C_[i] ) { 
+        X_[i] = B_[i];
+        address_ -= G_[i];
       } else return *this;
     }
-    address = -1;
+    address_ = -1;
     return *this;
   }
 
   uint64_t
   operator * ( void ) const {
-    return address;
+    return address_;
   }
 
   uint64_t
@@ -85,16 +76,16 @@ public:
     return size_;
   }
 private:
-  std::vector<uint64_t> A;
-  std::vector<uint64_t> B;
-  std::vector<uint64_t> C;
-  std::vector<uint64_t> D;
-  std::vector<uint64_t> X;
-  std::vector<uint64_t> G;
-  std::vector<uint64_t> J;
-  uint64_t n;
+  std::vector<uint64_t> A_;
+  std::vector<uint64_t> B_;
+  std::vector<uint64_t> C_;
+  std::vector<uint64_t> D_;
+  std::vector<uint64_t> X_;
+  std::vector<uint64_t> G_;
+  std::vector<uint64_t> J_;
+  uint64_t dim_;
   uint64_t size_;
-  uint64_t address;
+  uint64_t address_;
 };
 
 class Slice { 
