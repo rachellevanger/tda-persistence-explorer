@@ -42,6 +42,8 @@ find_package(X11 REQUIRED)
 
 include_directories ( 
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CIMG_PATH}/include
+  ${CMAKE_PHAT_PATH}/include
   /usr/local/include 
   /opt/local/include 
   ${Boost_INCLUDE_DIRS} 
@@ -70,20 +72,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Recurse #
 ###########
 
-# add the executable
-
-set ( LIBS      ${LIBS}
-                ${X11_LIBRARIES}
-                ${CMAKE_THREAD_LIBS_INIT}
-                ${Boost_LIBRARIES} )
-
-add_executable ( DataPersistence DataPersistence.cpp )
-target_link_libraries ( DataPersistence ${LIBS} )
-
-install(TARGETS DataPersistence
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
+add_subdirectory (source)
+#add_subdirectory (tests)
 
 #########
 # Tests #

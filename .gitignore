@@ -8,3 +8,5 @@ pd_sub
 pd_sup
 source/ImagePersistence/include/
 source/DataPersistence/include/
+source/phat/*
+CImg.h

@@ -24,8 +24,12 @@ build="$SRC_ROOT/.install/build.sh"
 source $SRC_ROOT/.install/parse.sh
 
 # Install CImg and PHAT dependencies in-tree (in-tree means local to source tree, not system-wide)
-./.install/cimg.sh --prefix=$SRC_ROOT/source/ImagePersistence/ || exit 1 
-./.install/phat.sh --prefix=$SRC_ROOT/source/ImagePersistence/ || exit 1
+./.install/cimg.sh --prefix=$SRC_ROOT/source/CImg/ || exit 1 
+./.install/phat.sh --prefix=$SRC_ROOT/source/phat/ || exit 1
+
+# TODO: improve build.sh to handle these in SEARCHPATH instead (currently can only take a single)
+MASS="$MASS -DCMAKE_CIMG_PATH=$SRC_ROOT/source/CImg"
+MASS="$MASS -DCMAKE_PHAT_PATH=$SRC_ROOT/source/phat"
 
 # Build ImagePersistence and install it in-tree to PersistenceExplorer package
 mkdir -p $SRC_ROOT/source/PersistenceExplorer/bin || exit 1

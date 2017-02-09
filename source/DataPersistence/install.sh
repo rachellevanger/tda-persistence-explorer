@@ -21,11 +21,16 @@ SRC_ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../../
 echo $SRC_ROOT
 build="$SRC_ROOT/.install/build.sh"
 
+# Install CImg and PHAT dependencies in-tree (in-tree means local to source tree, not system-wide)
+$SRC_ROOT/.install/cimg.sh --prefix=$SRC_ROOT/source/CImg/ || exit 1 
+$SRC_ROOT/.install/phat.sh --prefix=$SRC_ROOT/source/phat/ || exit 1
+
 # Parse command line arguments
 source $SRC_ROOT/.install/parse.sh
 
-# Install CImg and PHAT dependencies in-tree (in-tree means local to source tree, not system-wide)
-#$SRC_ROOT/.install/cimg.sh --prefix=$SRC_ROOT/source/DataPersistence/ || exit 1 
-#$SRC_ROOT/.install/phat.sh --prefix=$SRC_ROOT/source/DataPersistence/ || exit 1
+# Add CImg and phat to paths
+MASS="$MASS -DCMAKE_CIMG_PATH=$SRC_ROOT/source/CImg"
+MASS="$MASS -DCMAKE_PHAT_PATH=$SRC_ROOT/source/phat"
 
+# Build
 $build --prefix=$SRC_ROOT/source/DataPersistence --searchpath=$SEARCHPATH --build=$BUILDTYPE $MASS || exit 1

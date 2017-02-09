@@ -6,6 +6,11 @@
 SHELL_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 source $SHELL_DIR/parse.sh
 
+if [ -d "$PREFIX/include" ]; then
+  echo "Detected phat installation in $PREFIX"
+  exit 0
+fi
+
 echo Downloading PHAT
 git clone https://github.com/blazs/phat.git || exit 1
 

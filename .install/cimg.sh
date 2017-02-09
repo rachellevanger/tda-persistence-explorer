@@ -6,6 +6,11 @@
 SHELL_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 source $SHELL_DIR/parse.sh
 
+if [ -d "$PREFIX/include" ]; then
+  echo "Detected CImg installation in $PREFIX"
+  exit 0
+fi
+
 which wget || ( echo Cannot auto-install cimg without wget && exit 1 )
 echo making $PREFIX/include
 mkdir -p $PREFIX/include
