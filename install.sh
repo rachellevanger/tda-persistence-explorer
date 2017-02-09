@@ -36,4 +36,3 @@ $build --prefix=$SRC_ROOT/source/PersistenceExplorer --searchpath=$SEARCHPATH --
 cd $SRC_ROOT/source/PersistenceExplorer || exit 1
 python setup.py install || exit 1
 
-
