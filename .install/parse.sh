@@ -7,7 +7,7 @@ for i in "$@"; do case $i in
     -b=*|--build=*) BUILDTYPE="${i#*=}";       shift;;
     -s=*|--searchpath=*) SEARCHPATH="${i#*=}"; shift;;
     -t|--test) TEST="YES";                     shift;;
-    *)               MASS+="${i#*=} ";         shift;;
+    *)               MASS+="${i} ";         shift;;
 esac; done
 absolute() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
 if [ ! -z "$PREFIX" ]; then 
