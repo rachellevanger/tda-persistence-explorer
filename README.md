@@ -13,7 +13,7 @@ Rachel Levanger
 
 We recommend trying our Docker installation of the app, unless you are a Python ninja, in which case feel free to follow the instructions under the Local Installation heading, below. Our Docker image is essentially a stand-alone Linux environment that comes with everything in this repository (and all of the dependencies) pre-installed.
 
-To run tda-persistence-explorer via Docker, you'll first need to [download and install Docker](https://www.docker.com/) if you don't already have it. Once you have installed Docker, run the following command in a terminal to pull down our docker image:
+To run tda-persistence-explorer via Docker, you'll first need to [download and install Docker](https://www.docker.com/) if you don't already have it. Once you have installed Docker and have verified the Docker service is running, run the following command in a terminal to pull down our docker image:
 
 `docker pull rachellevanger/tda-persistence-explorer`
 
