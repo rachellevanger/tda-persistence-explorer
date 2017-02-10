@@ -13,9 +13,7 @@ Rachel Levanger
 
 We recommend trying our Docker installation of the app, unless you are a Python ninja, in which case feel free to follow the instructions under the Local Installation heading, below.
 
-To run tda-persistence-explorer via Docker, you'll first need to [download and install Docker](https://www.docker.com/) if you don't already have it.
-
-Once you have installed Docker, run the following command in a terminal to pull down our docker image:
+To run tda-persistence-explorer via Docker, you'll first need to [download and install Docker](https://www.docker.com/) if you don't already have it. Once you have installed Docker, run the following command in a terminal to pull down our docker image:
 
 `docker pull rachellevanger/tda-persistence-explorer`
 
@@ -29,14 +27,14 @@ To try out tda-persistence-explorer for the first time, we recommend running the
 
 `docker run -it -p 8888:8888 rachellevanger/tda-persistence-explorer sh -c "cd tda-persistence-explorer; jupyter notebook --ip=0.0.0.0 --no-browser"`
 
-The output from this command will include the following:
+The output from this command will include something that looks like this:
 
 ```
 Copy/paste this URL into your browser when you connect for the first time,
     to login with a token:
         http://0.0.0.0:8888/?token=2b87eb399551840a2d418489d93e68664e4dfb2859193379
 ```
-Simply copy/paste the link it provides and this will open up a Jupyter notebook interface. Navigate to `/docs/Tutorial.ipynb` and then follow the instructions provided in the notebook.
+Copy/paste the link, including the token, and this will open up a Jupyter notebook interface. Navigate to `/docs/Tutorial.ipynb` and then follow the instructions provided in the notebook.
 
 *To run your own notebooks on your local filesystem:*
 
@@ -46,7 +44,7 @@ We suggest running the following command to start getting familiar with running 
 
 `docker run -it -p 8888:8888 -v /Users:/Users rachellevanger/tda-persistence-explorer sh -c "jupyter notebook --ip=0.0.0.0 --no-browser"`
 
-Open the link with the provided token as you did for the Tutorial. The `/Users` directory should be available from the list of directories. Browse to your `.ipynb` file and click on it to run the notebook. It shoudl now have access to the PersistenceExplorer installation in the Docker container.
+Copy/paste the link with the provided token as you did for the Tutorial. The `/Users` directory should be available from the list of directories. Browse to your `.ipynb` file and click on it to run the notebook. It shoudl now have access to the PersistenceExplorer installation in the Docker container.
 
 
 
