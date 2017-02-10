@@ -17,25 +17,20 @@
 #   Additional arguments will be passed to CMake. Any paths in these arguments
 #   should be absolute.
 
-SRC_ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+SRC_ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../../
+echo $SRC_ROOT
 build="$SRC_ROOT/.install/build.sh"
+
+# Install CImg and PHAT dependencies in-tree (in-tree means local to source tree, not system-wide)
+$SRC_ROOT/.install/cimg.sh --prefix=$SRC_ROOT/source/CImg/ || exit 1 
+$SRC_ROOT/.install/phat.sh --prefix=$SRC_ROOT/source/phat/ || exit 1
 
 # Parse command line arguments
 source $SRC_ROOT/.install/parse.sh
 
-# Install CImg and PHAT dependencies in-tree (in-tree means local to source tree, not system-wide)
-./.install/cimg.sh --prefix=$SRC_ROOT/source/CImg/ || exit 1 
-./.install/phat.sh --prefix=$SRC_ROOT/source/phat/ || exit 1
-
-# TODO: improve build.sh to handle these in SEARCHPATH instead (currently can only take a single)
+# Add CImg and phat to paths
 MASS="$MASS -DCMAKE_CIMG_PATH=$SRC_ROOT/source/CImg"
 MASS="$MASS -DCMAKE_PHAT_PATH=$SRC_ROOT/source/phat"
 
-# Build ImagePersistence and install it in-tree to PersistenceExplorer package
-mkdir -p $SRC_ROOT/source/PersistenceExplorer/bin || exit 1
-cd $SRC_ROOT/source/ImagePersistence
-$build --prefix=$SRC_ROOT/source/PersistenceExplorer --searchpath=$SEARCHPATH --build=$BUILDTYPE $MASS || exit 1
-
-# Install PersistenceExplorer python package
-cd $SRC_ROOT/source/PersistenceExplorer || exit 1
-python setup.py install || exit 1
+# Build
+$build --prefix=$SRC_ROOT/source/DataPersistence --searchpath=$SEARCHPATH --build=$BUILDTYPE $MASS || exit 1

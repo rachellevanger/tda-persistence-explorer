@@ -42,6 +42,8 @@ find_package(X11 REQUIRED)
 
 include_directories ( 
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CIMG_PATH}/include
+  ${CMAKE_PHAT_PATH}/include
   /usr/local/include 
   /opt/local/include 
   ${Boost_INCLUDE_DIRS} 
@@ -54,7 +56,7 @@ include_directories (
 #######################
 
 link_directories ( 
-  ${USER_LIBRARY_PATH} 
+  ${USER_LIBRARY_PATH}
   /usr/local/lib 
   /opt/local/lib )
 
