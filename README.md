@@ -44,7 +44,7 @@ We suggest running the following command to start getting familiar with running 
 
 `docker run -it -p 8888:8888 -v /Users:/Users rachellevanger/tda-persistence-explorer sh -c "jupyter notebook --ip=0.0.0.0 --no-browser"`
 
-Copy/paste the link with the provided token as you did for the Tutorial. The `/Users` directory should be available from the list of directories. Browse to your `.ipynb` file and click on it to run the notebook. It shoudl now have access to the PersistenceExplorer installation in the Docker container.
+Copy/paste the link with the provided token as you did for the Tutorial. The `/Users` directory should be available from the list of directories. Browse to your `.ipynb` file and click on it to run the notebook. It should now be running via the installation of the tda-persistence-explorer app in the Docker container.
 
 
 
