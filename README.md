@@ -17,11 +17,7 @@ To run tda-persistence-explorer via Docker, you'll first need to [download and i
 
 `docker pull rachellevanger/tda-persistence-explorer`
 
-**For MAC users:**
-
-Make sure you have the `/Users` folder shared. From the Docker menu, choose Preferences... and then go to the File Sharing tab. This folder is shared by default, so it should already be in the list. If it isn't, add it and then restart Docker.
-
-*Try out the Tutorial first:*
+**Try out the Tutorial first:**
 
 To try out tda-persistence-explorer for the first time, we recommend running the pre-packaged tutorial. To start it up, copy/paste the following command into a terminal:
 
@@ -36,7 +32,11 @@ Copy/paste this URL into your browser when you connect for the first time,
 ```
 Copy/paste the link, including the token, and this will open up a Jupyter notebook interface. Navigate to `/docs/Tutorial.ipynb` and then follow the instructions provided in the notebook.
 
-*To run your own notebooks on your local filesystem:*
+**To run your own notebooks on your local filesystem:**
+
+*For MAC users:*
+
+Make sure you have the `/Users` folder shared. From the Docker menu, choose Preferences... and then go to the File Sharing tab. This folder is shared by default, so it should already be in the list. If it isn't, add it and then restart Docker.
 
 Once you are familiar with the Tutorial, you're ready to start working with your own data! You will need to tell the Docker container to mount your local `/Users` directory in order to browse to files you might have in your `Documents` folder. (You'll need to specify a different root direcotry if you wish to work with data outside of the `/Users` directory, and make sure it is shared with Docker.)
 
