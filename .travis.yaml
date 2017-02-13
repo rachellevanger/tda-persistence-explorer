@@ -1,0 +1,12 @@
+sudo: false
+langauge: cpp
+sudo: required
+dist: trusty
+notifications:
+  email:
+    recipients:
+      - sharker81@gmail.com
+    on_success: change
+    on_failure: always
+script: 
+  - ./install.sh --build=Debug
