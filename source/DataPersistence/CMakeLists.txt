@@ -27,7 +27,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG" )
 # Packages #
 ############
 
-find_package(Boost 1.58.0 REQUIRED COMPONENTS chrono system thread serialization)
+find_package(Boost)
 find_package(Threads)
 
 # The next line fixes an issue with Anaconda interfering with X11
