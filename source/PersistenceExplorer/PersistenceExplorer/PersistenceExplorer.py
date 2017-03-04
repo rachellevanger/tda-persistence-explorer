@@ -12,8 +12,8 @@ def Execute(command_string, html_string):
     Submits the command to be executed as javascript along with html_string
     D3 and PersistenceExplorer are preloaded if they aren't already
   """
-  stylesheet = '<style>'  + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.css') + '</style>'
-  javascript = '<script>' + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.js') + '</script>'
+  stylesheet = '<style>'  + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.css').decode('ascii') + '</style>'
+  javascript = '<script>' + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.js').decode('ascii') + '</script>'
   output = stylesheet + javascript + """
     <script>
     var command = function() { 
@@ -44,7 +44,7 @@ def PersistenceExplorer( imagefiles, persistencefiles, frames, dimension, images
   command_string = "PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs, _imagesize, _maximagesize, _pdsize);"
   command_string = command_string.replace('_imagefiles', json.dumps(imagefiles))
   command_string = command_string.replace('_persistencefiles', json.dumps(persistencefiles))
-  command_string = command_string.replace('_frames', json.dumps(frames))
+  command_string = command_string.replace('_frames', json.dumps(list(frames)))
   command_string = command_string.replace('_dimension', json.dumps(dimension))
   command_string = command_string.replace('_divs', 
     json.dumps({'divImg' : '#' + prefix + 'divImg', 
