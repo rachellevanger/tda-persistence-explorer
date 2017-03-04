@@ -1,4 +1,6 @@
+
 from setuptools import setup
+
 
 setup(name='PersistenceExplorer',
       version='0.1',
@@ -12,5 +14,5 @@ setup(name='PersistenceExplorer',
           'IPython'
       ],
       include_package_data=True,
-      scripts=['bin/ImagePersistence'], # includes binary executable
+      data_files=['bin/ImagePersistence'], # includes binary executable
       zip_safe=False)
