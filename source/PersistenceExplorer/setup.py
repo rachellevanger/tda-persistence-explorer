@@ -5,7 +5,7 @@ from setuptools import setup
 setup(name='PersistenceExplorer',
       version='0.1',
       description='Jupyter-Embeddable Persistence Tool',
-      url='https://github.com/rachellevanger/tda-d3-explorer',
+      url='https://github.com/rachellevanger/tda-persistence-explorer',
       author='Rachel Levanger and Shaun Harker',
       author_email='rachel.levanger@rutgers.edu, shaun.harker@rutgers.edu',
       license='MIT',
