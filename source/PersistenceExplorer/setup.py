@@ -7,12 +7,12 @@ setup(name='PersistenceExplorer',
       description='Jupyter-Embeddable Persistence Tool',
       url='https://github.com/rachellevanger/tda-persistence-explorer',
       author='Rachel Levanger and Shaun Harker',
-      author_email='rachel.levanger@rutgers.edu, shaun.harker@rutgers.edu',
+      author_email='rachel@math.rutgers.edu, shaun.harker@rutgers.edu',
       license='MIT',
       packages=['PersistenceExplorer'],
       install_requires=[
           'IPython'
       ],
       include_package_data=True,
-      data_files=['bin/ImagePersistence'], # includes binary executable
+      data_files=[('source/PersistenceExplorer',['bin/ImagePersistence'])], # includes binary executable
       zip_safe=False)
