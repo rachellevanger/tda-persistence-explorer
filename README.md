@@ -57,7 +57,7 @@ Docker should already have access to common system folders (e.g. `/Users` for Ma
 To run PersistenceExplorer from a Jupyter notebook located outside of the Docker container, copy/paste the following into a terminal, modifying the path `/path/to/my/local/work/directory` so that it points to the directory with your working data in it:
 
 ```
-docker run -d -e GEN_CERT=yes -v /path/to/my/local/work/directory:/home/jovyan/work -p 8888:8888 rachellevanger/tda-persistence-explorer start-notebook.sh && sleep 2 && docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
+docker run -d -e GEN_CERT=yes -v /path/to/my/local/work/directory:/home/jovyan/work -p 8888:8888 rachellevanger/tda-persistence-explorer start-notebook.sh && sleep 4 && docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
 ```
 
 Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. If the link does not appear, then run the following command separately (sometimes the docker container is not started by the time the command to retrive the link is processed, even though we are telling it to wait 4 seconds!):
