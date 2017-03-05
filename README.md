@@ -35,10 +35,16 @@ After the image is pulled, you can verify it is avaialble by running `docker ima
 To run Jupyter notebook from the Docker container, a port will need to be exposed on your computer. To secure your connection to the notebook server, we suggest using the following command to start up the notebook server.
 
 ```
-docker run -d -e GEN_CERT=yes -p 8888:8888 rachellevanger/tda-persistence-explorer /bin/bash -c "cd tda-persistence-explorer; start-notebook.sh" && sleep 2 && docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
+docker run -d -e GEN_CERT=yes -p 8888:8888 rachellevanger/tda-persistence-explorer /bin/bash -c "cd tda-persistence-explorer; start-notebook.sh" && sleep 4 && docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
 ```
 
-Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. Your browser will warn you that this site is not trusted. The option `-e GEN_CERT=yes` in the above command instructed the container to generate a self-signed SSL certificate and configured the Jupyter notebook server to accept HTTPS connections. Typically, sites with self-signed certificates should not be trusted, but since you are the one who created this site, this is okay. Ignore the scary messages and continue.
+Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. If the link does not appear, then run the following command separately (sometimes the docker container is not started by the time the command to retrive the link is processed, even though we are telling it to wait 4 seconds!):
+
+```
+docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
+```
+
+Your browser will warn you that this site is not trusted. The option `-e GEN_CERT=yes` in the above command instructed the container to generate a self-signed SSL certificate and configured the Jupyter notebook server to accept HTTPS connections. Typically, sites with self-signed certificates should not be trusted, but since you are the one who created this site, this is okay. Ignore the scary messages and continue.
 
 To try out tda-persistence-explorer for the first time, browse to `doc/Tutorial.ipynb`. Follow the instructions provided in the notebook to explore a sample dataset.
 
@@ -54,7 +60,13 @@ To run PersistenceExplorer from a Jupyter notebook located outside of the Docker
 docker run -d -e GEN_CERT=yes -v /path/to/my/local/work/directory:/home/jovyan/work -p 8888:8888 rachellevanger/tda-persistence-explorer start-notebook.sh && sleep 2 && docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
 ```
 
-Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. Since this command generates a self-signed SSL certificate, your browser will warn you that the link is untrusted. Ignore the browser warnings in order to run the notebook. The default directory from the Jupyter noteook will be the local folder that you mounted. Browse to your `.ipynb` file and click on it to run the notebook. It should now be running via the installation of the tda-persistence-explorer app in the Docker container.
+Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. If the link does not appear, then run the following command separately (sometimes the docker container is not started by the time the command to retrive the link is processed, even though we are telling it to wait 4 seconds!):
+
+```
+docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
+```
+
+Since the `docker run` command above generates a self-signed SSL certificate (option `-e GEN_CERT=yes`), your browser will warn you that the link is untrusted. Ignore the browser warnings in order to run the notebook. The default directory from the Jupyter noteook will be the local folder that you mounted. Browse to your `.ipynb` file and click on it to run the notebook. It should now be running via the installation of the tda-persistence-explorer app in the Docker container.
 
 Note, you can also change the port number (here we choose 8888) in the event you want multiple containers running for exploring different datasets simultaneously (provided your computer has enough resources to do so).
 
