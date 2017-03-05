@@ -14,5 +14,5 @@ setup(name='PersistenceExplorer',
           'IPython'
       ],
       include_package_data=True,
-      data_files=[('source/PersistenceExplorer',['bin/ImagePersistence'])], # includes binary executable
+      data_files=[('',['bin/ImagePersistence'])], # includes binary executable
       zip_safe=False)
