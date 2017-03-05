@@ -1,2 +1,3 @@
 include PersistenceExplorer/WebApp/PersistenceExplorer.js
 include PersistenceExplorer/WebApp/PersistenceExplorer.css
+include PersistenceExplorer/ImagePersistence

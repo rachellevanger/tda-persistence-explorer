@@ -5,6 +5,7 @@ import string
 import os
 import subprocess
 import pkgutil
+from pkg_resources import resource_filename
 
 def Execute(command_string, html_string):
   """
@@ -86,7 +87,7 @@ def ProcessImageListWithPHAT( list_of_image_filenames, list_of_output_filenames,
   cohorts_of_output_filenames = chunks(list_of_output_filenames, cores)
   # Run commands in parallel
   for images,outputs in zip(cohorts_of_image_filenames, cohorts_of_output_filenames):
-    processes = [subprocess.Popen(["ImagePersistence", infile, outfile, filtration_type]) for infile, outfile in zip(images, outputs) ]
+    processes = [subprocess.Popen([resource_filename(__name__, 'ImagePersistence'), infile, outfile, filtration_type]) for infile, outfile in zip(images, outputs) ]
     # Block until processing complete
     exitcodes = [p.wait() for p in processes]
 
