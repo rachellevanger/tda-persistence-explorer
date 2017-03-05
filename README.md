@@ -8,6 +8,11 @@ Jacek Cyranka,
 Shaun Harker,
 Rachel Levanger
 
+We provide two sets of installation instructions:
+
+* [Docker Installation](#docker-installation) - Simple
+* [Local Installation](#local-installation) - Advanced
+
 
 # Docker Installation
 
