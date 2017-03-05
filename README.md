@@ -43,17 +43,27 @@ Once you are familiar with the Tutorial, you're ready to start working with your
 
 Docker should already have access to common system folders (e.g. `/Users` for Macs), since this is the default setup. To check that Docker has access to the data directory you will need to access, from the Docker menu choose Preferences... and then go to the File Sharing tab. If your directory isn't contained in a directory in the list, add it and then restart Docker.
 
-To run PersistenceExplorer from a Jupyter notebook located outside of the Docker container, copy/paste the following into a terminal, modifying the path `/path/to/my/data/folder` so that it points to the directory with your working data in it:
+To run PersistenceExplorer from a Jupyter notebook located outside of the Docker container, copy/paste the following into a terminal, modifying the path `/path/to/my/local/work/directory` so that it points to the directory with your working data in it:
 
 ```
 docker run -d -e GEN_CERT=yes -v /path/to/my/local/work/directory:/home/jovyan/work -p 8888:8888 rachellevanger/tda-persistence-explorer start-notebook.sh && sleep 2 && docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
 ```
 
-Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. Since this command generates a self-signed SSL certificate, your browser will warn you that the link is untrusted. Ignore the browser warnings in order to run the notebook. The default directory from the Jupyter noteook will be the local folder that you mounted. Browse to your `.ipynb` file and click on it to run the notebook. It should now be running via the installation of the tda-persistence-explorer app in the Docker container. 
+Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. Since this command generates a self-signed SSL certificate, your browser will warn you that the link is untrusted. Ignore the browser warnings in order to run the notebook. The default directory from the Jupyter noteook will be the local folder that you mounted. Browse to your `.ipynb` file and click on it to run the notebook. It should now be running via the installation of the tda-persistence-explorer app in the Docker container.
+
+Note, you can also change the port number (here we choose 8888) in the event you want multiple containers running for exploring different datasets simultaneously (provided your computer has enough resources to do so).
+
 
 ## Keeping your Docker environment clean
 
 Each time you run `docker run` on the commandline, a new Docker container is instantiated. Learn how to keep your docker environment clean by reading [this helpful guide](https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes).
+
+It is easiest (and most secure) to stop and remove the Docker container when you are done using it by running the following commands, which will stop and then remove all docker containers.
+
+```
+docker stop $(docker ps -a -q)
+docker rm $(docker ps -a -q)
+```
 
 
 # Local Installation
