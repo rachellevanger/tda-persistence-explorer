@@ -1,1 +1,1 @@
-from PersistenceExplorer import *
+from .PersistenceExplorer import *

@@ -39,3 +39,4 @@ $build --prefix=$SRC_ROOT/source/PersistenceExplorer --searchpath=$SEARCHPATH --
 # Install PersistenceExplorer python package
 cd $SRC_ROOT/source/PersistenceExplorer || exit 1
 python setup.py install || exit 1
+

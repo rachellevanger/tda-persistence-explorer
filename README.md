@@ -8,45 +8,80 @@ Jacek Cyranka,
 Shaun Harker,
 Rachel Levanger
 
-<!-- 
+We provide two sets of installation instructions:
+
+* [Docker Installation](#docker-installation) - Simple
+* [Local Installation](#local-installation) - Advanced
+
+
 # Docker Installation
 
-We recommend trying out our Docker installation of the app, unless you are a Python ninja, in which case feel free to follow the instructions under the Local Installation heading, below. Our Docker image is essentially a stand-alone Linux environment that comes with everything in this repository (and all of the dependencies) pre-installed.
+For your convenience, we provide a Docker image that comes with everything in this repository (and all of the dependencies) pre-installed. 
 
-To run tda-persistence-explorer via Docker, you'll first need to [download and install Docker](https://www.docker.com/) if you don't already have it. Once you have installed Docker and have verified the Docker service is running, run the following command in a terminal to pull down our docker image:
+**System Requirements:**
+
+* [Docker](https://www.docker.com/)
+* Approx 1.5GB of disk space (for the image)
+* 4GB of RAM (required by Docker)
+
+To run tda-persistence-explorer via Docker, you'll first need to download and install Docker if you don't already have it. Once you have installed Docker and have verified the Docker service is running, run the following command in a terminal to pull down our docker image:
 
 `docker pull rachellevanger/tda-persistence-explorer`
 
-**Try out the Tutorial first:**
+After the image is pulled, you can verify it is avaialble by running `docker images`.
 
-To try out tda-persistence-explorer for the first time, we recommend running the pre-packaged tutorial. To start it up, copy/paste the following command into a terminal:
+## Running the Tutorial Jupyter notebook via a Docker container
 
-`docker run -it -p 8888:8888 rachellevanger/tda-persistence-explorer sh -c "cd tda-persistence-explorer; jupyter notebook --ip=0.0.0.0 --no-browser"`
-
-The output from this command will include something that looks like this:
+To run Jupyter notebook from the Docker container, a port will need to be exposed on your computer. To secure your connection to the notebook server, we suggest using the following command to start up the notebook server.
 
 ```
-Copy/paste this URL into your browser when you connect for the first time,
-    to login with a token:
-        http://0.0.0.0:8888/?token=2b87eb399551840a2d418489d93e68664e4dfb2859193379
+docker run -d -e GEN_CERT=yes -p 8888:8888 rachellevanger/tda-persistence-explorer /bin/bash -c "cd tda-persistence-explorer; start-notebook.sh" && sleep 4 && docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
 ```
-Copy/paste the link, including the token, and this will open up a Jupyter notebook interface. Navigate to `/docs/Tutorial.ipynb` and then follow the instructions provided in the notebook.
 
-**To run your own notebooks on your local filesystem:**
+Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. If the link does not appear, then run the following command separately (sometimes the docker container is not started by the time the command to retrive the link is processed, even though we are telling it to wait 4 seconds!):
 
-*For MAC users:*
+```
+docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
+```
 
-Make sure you have the `/Users` folder shared. From the Docker menu, choose Preferences... and then go to the File Sharing tab. This folder is shared by default, so it should already be in the list. If it isn't, add it and then restart Docker.
+Your browser will warn you that this site is not trusted. The option `-e GEN_CERT=yes` in the above command instructed the container to generate a self-signed SSL certificate and configured the Jupyter notebook server to accept HTTPS connections. Typically, sites with self-signed certificates should not be trusted, but since you are the one who created this site, this is okay. Ignore the scary messages and continue.
 
-Once you are familiar with the Tutorial, you're ready to start working with your own data! You will need to tell the Docker container to mount your local `/Users` directory in order to browse to files you might have in your `Documents` folder. (You'll need to specify a different root direcotry if you wish to work with data outside of the `/Users` directory, and make sure it is shared with Docker.)
+To try out tda-persistence-explorer for the first time, browse to `doc/Tutorial.ipynb`. Follow the instructions provided in the notebook to explore a sample dataset.
 
-We suggest running the following command to start getting familiar with running tda-persistence-explorer through this Docker container:
+## Running your own notebooks on your local filesystem via a Docker container
 
-`docker run -it -p 8888:8888 -v /Users:/Users rachellevanger/tda-persistence-explorer sh -c "jupyter notebook --ip=0.0.0.0 --no-browser"`
+Once you are familiar with the Tutorial, you're ready to start working with your own data! You will need to tell the Docker container to mount to your local data directory in order to access data on your local computer. Note that this gives anyone with your public IP address and the Jupyter notebook token access to your data directory, which is why it's best practice to use HTTPS.
 
-Copy/paste the link with the provided token as you did for the Tutorial. The `/Users` directory should be available from the list of directories. Browse to your `.ipynb` file and click on it to run the notebook. It should now be running via the installation of the tda-persistence-explorer app in the Docker container.
+Docker should already have access to common system folders (e.g. `/Users` for Macs), since this is the default setup. To check that Docker has access to the data directory you will need to access, from the Docker menu choose Preferences... and then go to the File Sharing tab. If your directory isn't contained in a directory in the list, add it and then restart Docker.
 
- -->
+To run PersistenceExplorer from a Jupyter notebook located outside of the Docker container, copy/paste the following into a terminal, modifying the path `/path/to/my/local/work/directory` so that it points to the directory with your working data in it:
+
+```
+docker run -d -e GEN_CERT=yes -v /path/to/my/local/work/directory:/home/jovyan/work -p 8888:8888 rachellevanger/tda-persistence-explorer start-notebook.sh && sleep 4 && docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
+```
+
+Copy the URL `https://localhost:8888/[very long token id]` from the output and paste it into your browser. If the link does not appear, then run the following command separately (sometimes the docker container is not started by the time the command to retrive the link is processed, even though we are telling it to wait 4 seconds!):
+
+```
+docker logs $(docker ps -l -q) 2>&1 | grep https://localhost:
+```
+
+Since the `docker run` command above generates a self-signed SSL certificate (option `-e GEN_CERT=yes`), your browser will warn you that the link is untrusted. Ignore the browser warnings in order to run the notebook. The default directory from the Jupyter noteook will be the local folder that you mounted. Browse to your `.ipynb` file and click on it to run the notebook. It should now be running via the installation of the tda-persistence-explorer app in the Docker container.
+
+Note, you can also change the port number (here we choose 8888) in the event you want multiple containers running for exploring different datasets simultaneously (provided your computer has enough resources to do so).
+
+
+## Keeping your Docker environment clean
+
+Each time you run `docker run` on the commandline, a new Docker container is instantiated. Learn how to keep your docker environment clean by reading [this helpful guide](https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes).
+
+It is easiest (and most secure) to stop and remove the Docker container when you are done using it by running the following commands, which will stop and then remove all docker containers.
+
+```
+docker stop $(docker ps -a -q)
+docker rm $(docker ps -a -q)
+```
+
 
 # Local Installation
 
@@ -82,5 +117,5 @@ The `ImagePersistence` program is built and placed in `/source/PersistenceExplor
 
 Python packaging: <http://python-packaging.readthedocs.io/en/latest/everything.html>
 
-
+The Docker image is based on the [jupyter/minimal-notebook](https://github.com/jupyter/docker-stacks/tree/master/minimal-notebook) image.
 

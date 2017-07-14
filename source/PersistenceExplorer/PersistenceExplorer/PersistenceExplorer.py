@@ -5,6 +5,7 @@ import string
 import os
 import subprocess
 import pkgutil
+from pkg_resources import resource_filename
 
 def Execute(command_string, html_string):
   """
@@ -12,8 +13,8 @@ def Execute(command_string, html_string):
     Submits the command to be executed as javascript along with html_string
     D3 and PersistenceExplorer are preloaded if they aren't already
   """
-  stylesheet = '<style>'  + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.css') + '</style>'
-  javascript = '<script>' + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.js') + '</script>'
+  stylesheet = '<style>'  + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.css').decode('ascii') + '</style>'
+  javascript = '<script>' + pkgutil.get_data('PersistenceExplorer', 'WebApp/PersistenceExplorer.js').decode('ascii') + '</script>'
   output = stylesheet + javascript + """
     <script>
     var command = function() { 
@@ -44,7 +45,7 @@ def PersistenceExplorer( imagefiles, persistencefiles, frames, dimension, images
   command_string = "PersistenceExplorer(_imagefiles, _persistencefiles, _frames, _dimension, _divs, _imagesize, _maximagesize, _pdsize);"
   command_string = command_string.replace('_imagefiles', json.dumps(imagefiles))
   command_string = command_string.replace('_persistencefiles', json.dumps(persistencefiles))
-  command_string = command_string.replace('_frames', json.dumps(frames))
+  command_string = command_string.replace('_frames', json.dumps(list(frames)))
   command_string = command_string.replace('_dimension', json.dumps(dimension))
   command_string = command_string.replace('_divs', 
     json.dumps({'divImg' : '#' + prefix + 'divImg', 
@@ -86,7 +87,7 @@ def ProcessImageListWithPHAT( list_of_image_filenames, list_of_output_filenames,
   cohorts_of_output_filenames = chunks(list_of_output_filenames, cores)
   # Run commands in parallel
   for images,outputs in zip(cohorts_of_image_filenames, cohorts_of_output_filenames):
-    processes = [subprocess.Popen(["ImagePersistence", infile, outfile, filtration_type]) for infile, outfile in zip(images, outputs) ]
+    processes = [subprocess.Popen([resource_filename(__name__, 'ImagePersistence'), infile, outfile, filtration_type]) for infile, outfile in zip(images, outputs) ]
     # Block until processing complete
     exitcodes = [p.wait() for p in processes]
 
