@@ -26,6 +26,7 @@ struct CubicalComplex_ {
   std::vector<uint64_t> type_from_shape_;
   std::vector<uint64_t> begin_;
   std::vector<uint64_t> end_;
+  std::vector<bool> periodic_;
   uint64_t dimension_;
   uint64_t num_types_;
   uint64_t type_size_;
@@ -50,14 +51,25 @@ public:
   ///         far right, so to have a "full" cubical 
   ///         complex as a subcomplex, pad with an extra box.
   CubicalComplex ( std::vector<uint64_t> const& sizes ) {
-    assign ( sizes );
+    assign ( sizes, std::vector<bool>(sizes.size(), false) );
+  }
+
+  /// CubicalComplex
+  ///   Initialize the complex that is boxes[i] boxes across 
+  ///   in dimensions d = 0, 1, ..., boxes.size() - 1
+  ///   Note: The cubical complex does not have cells on the 
+  ///         far right, so to have a "full" cubical 
+  ///         complex as a subcomplex, pad with an extra box.
+  CubicalComplex ( std::vector<uint64_t> const& sizes, 
+                   std::vector<bool> const& periodic ) {
+    assign ( sizes, periodic );
   }
 
   /// assign
   ///   Initialize the complex that is boxes[i] boxes across 
   ///   in dimensions d = 0, 1, ..., boxes.size() - 1
   void
-  assign ( std::vector<uint64_t> const& boxes ) {
+  assign ( std::vector<uint64_t> const& boxes, std::vector<bool> const& periodic ) {
     data_ = std::make_shared<CubicalComplex_>();
 
     // Get dimension
@@ -79,6 +91,7 @@ public:
     data_ -> num_types_ = M;
     data_ -> type_size_ = L;
     data_ -> size_ = N;
+    data_ -> periodic_ = periodic;
 
     // Generate shapes and then sort them by dimension (which is bit popcount) to create types.
     // Implement a bijection between shapes and types via the following arrays:
@@ -221,6 +234,8 @@ public:
       // Check if there is a boundary to the right:
       if ( coordinate.rem + 1 < sizes()[d]) { 
         bd.push_back( offset_cell + PV_()[d]);
+      } else if ( data_ -> periodic_[d] ) { // for periodic
+        bd.push_back( offset_cell + PV_()[d] - PV_()[d+1]);     
       }
     }
     return bd;
@@ -246,10 +261,20 @@ public:
       // Check if there is a coboundary to the left:
       if ( coordinate.rem > 0 ) { 
         cbd.push_back( offset_cell - PV_()[d]);
+      } else if ( data_ -> periodic_[d] ) { // for periodic
+        cbd.push_back( offset_cell - PV_()[d] + PV_()[d+1]);
       }
     }
     return cbd;
   }    
+
+  /// periodic
+  ///   Return vector reporting which dimensions
+  ///   have periodic boundary conditions
+  std::vector<bool> const&
+  periodic ( void ) const {
+    return data_ -> periodic_;
+  }
 
   /// dimension
   ///   Return dimension of complex
@@ -269,20 +294,29 @@ public:
   bool
   operator == ( CubicalComplex const& rhs ) const {
     if ( sizes() != rhs.sizes() ) return false;
+    if ( periodic() != rhs.periodic() ) return false;
     return true;
   }
 
   /// operator <
   bool
   operator < ( CubicalComplex const& rhs ) const {
-    return std::lexicographical_compare(sizes().begin(), sizes().end(), rhs.sizes().begin(), rhs.sizes().end());
+    if ( sizes() != rhs.sizes() ) {
+      return std::lexicographical_compare(sizes().begin(), sizes().end(),
+                                          rhs.sizes().begin(), rhs.sizes().end());
+    } else {
+      return std::lexicographical_compare(periodic().begin(), periodic().end(),
+                                          rhs.periodic().begin(), rhs.periodic().end());
+    }
   }
 
   /// operator <<
   friend std::ostream & operator << ( std::ostream & stream, CubicalComplex const& stream_me ) {
     stream << "CubicalComplex([";
     for ( auto x : stream_me.sizes() ) stream << x << ",";
-    return stream <<  "])";
+    stream <<  "],["; 
+    for ( auto x : stream_me.periodic() ) stream << ( x ? "T" : "F") << ",";
+    return stream << "])";
   }
 
   /// print_cell (for debugging )
@@ -337,7 +371,10 @@ namespace std {
       std::size_t seed = 0;
       for ( auto x : complex.sizes() ) {
         hash_combine(seed,hash_value(x));
-      }      
+      }     
+      for ( auto x : complex.periodic() ) {
+        hash_combine(seed,hash_value( x ? 1L : 0L ));
+      }       
       return seed;
     }
   };
