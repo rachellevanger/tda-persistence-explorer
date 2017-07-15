@@ -31,9 +31,9 @@ source $SRC_ROOT/.install/parse.sh
 MASS="$MASS -DCMAKE_CIMG_PATH=$SRC_ROOT/source/CImg"
 MASS="$MASS -DCMAKE_PHAT_PATH=$SRC_ROOT/source/phat"
 
-# Build ImagePersistence and install it in-tree to PersistenceExplorer package
+# Build DataPersistence and install it in-tree to PersistenceExplorer package
 mkdir -p $SRC_ROOT/source/PersistenceExplorer/bin || exit 1
-cd $SRC_ROOT/source/ImagePersistence
+cd $SRC_ROOT/source/DataPersistence
 $build --prefix=$SRC_ROOT/source/PersistenceExplorer --searchpath=$SEARCHPATH --build=$BUILDTYPE $MASS || exit 1
 
 # Install PersistenceExplorer python package

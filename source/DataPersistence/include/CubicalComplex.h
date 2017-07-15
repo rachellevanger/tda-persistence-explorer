@@ -60,6 +60,23 @@ public:
   ///   Note: The cubical complex does not have cells on the 
   ///         far right, so to have a "full" cubical 
   ///         complex as a subcomplex, pad with an extra box.
+  ///   Takes boolean parameter for whether or not complex is
+  ///   periodic. Create boolean vector indicating every di-
+  ///   mension should be treated as periodic.
+  CubicalComplex ( std::vector<uint64_t> const& sizes,
+                   bool const& isperiodic ) {
+    assign ( sizes, std::vector<bool>(sizes.size(), isperiodic) );
+  }
+
+  /// CubicalComplex
+  ///   Initialize the complex that is boxes[i] boxes across 
+  ///   in dimensions d = 0, 1, ..., boxes.size() - 1
+  ///   Note: The cubical complex does not have cells on the 
+  ///         far right, so to have a "full" cubical 
+  ///         complex as a subcomplex, pad with an extra box.
+  ///   Takes boolean vector for whether or not complex is
+  ///   periodic, with each position indicating that dimension
+  ///   should be treated with periodic boundary conditions.
   CubicalComplex ( std::vector<uint64_t> const& sizes, 
                    std::vector<bool> const& periodic ) {
     assign ( sizes, periodic );

@@ -34,7 +34,9 @@ std::string help_string =
 "   <output_filename> : output filename (a CSV file)\n"
 "   <mode>            : A mode of execution (either \"sub\" or \"super\") \n"
 "                       to indicate whether to compute\n"
-"                       sublevel or superlevel persistence.\n";
+"                       sublevel or superlevel persistence.\n"
+"   <periodic>        : Optional 0 or 1 indicating whether or not to process\n"
+"                       with periodic boundary conditions.\n"; // TODO: Make a vector of 0s and 1s
 
 // Overview:
 //  1. The input filename is loaded into a "Data" object
@@ -188,12 +190,15 @@ SublevelFiltration ( Data const& data ) {
   //    It could stand to be written more cleanly. 
   // Create cubical complex using "wrapping trick"
   auto incremented_resolution = data.resolution();
-  for ( auto & size : incremented_resolution ) ++ size; // wrapping trick
-  CubicalComplex complex(incremented_resolution);
+  if ( data.isperiodic() == false ) {
+    for ( auto & size : incremented_resolution ) ++ size; // wrapping trick if not periodic
+  }
+  CubicalComplex complex(incremented_resolution, data.isperiodic());
   uint64_t D = complex.dimension();
 
   // Initialize array to hold cell values for 
-  // sublevel filtration with "+inf" values:
+  // sublevel filtration with "+inf" values: 
+  // (note: won't have any left for periodic; all will be populated with finite values)
   std::vector<double> V (complex.size(), std::numeric_limits<double>::infinity());
 
   std::queue<uint64_t> shape_queue;
@@ -227,7 +232,8 @@ SublevelFiltration ( Data const& data ) {
       for ( auto offset : Slice(bottom, bottom, top, top)) {
         V[bd_shape_begin + offset] = std::min ( V[ bd_shape_begin + offset ], V[ cbd_shape_begin + offset ]);
       }
-      // RIGHT-PROPAGATE
+      // RIGHT-PROPAGATE 
+      // TODO: Will this break if we don't have the wrapper cells when periodic boundary conditions ???
       uint64_t d = 0; { uint64_t t = parent ^ shape; while ( t >>= 1 ) ++d; } // determine collapse dimension
       ++ bd_L[d]; -- cbd_U[d];
       auto bd_slice = Slice(bottom, bd_L, top, top);
@@ -263,7 +269,7 @@ SublevelFiltration ( Data const& data ) {
 ///     a Filtration object
 Filtration
 SuperlevelFiltration ( Data const& data ) {
-  CubicalComplex complex(data.resolution());
+  CubicalComplex complex(data.resolution(), data.isperiodic());
   uint64_t D = complex.dimension();
 
   // Initialize array to hold cell values for 
@@ -331,6 +337,7 @@ SuperlevelFiltration ( Data const& data ) {
   }
 
   // Overwrite right-edge wrapper cells with -inf
+  // TODO: How does this interact with periodic boundary conditions ???
   for ( uint64_t d = 0; d < D; ++ d ) {
     std::vector<uint64_t> bottom(D);
     std::vector<uint64_t> U(D);
@@ -428,8 +435,9 @@ SavePersistenceResults ( Filtration const& filtration,
 /// main
 ///   Entry point of program
 int main(int argc, char *argv[]) {
+
   // Check command line arguments
-  if ( argc != 4 ) {
+  if ( argc < 4 || argc > 6 ) {
     std::cerr << help_string << "\n";
     return 1;
   }
@@ -438,6 +446,16 @@ int main(int argc, char *argv[]) {
   std::string infile_name(argv[1]);
   std::string outfile_name(argv[2]);
   std::string mode(argv[3]);
+
+  // Periodic argument
+  bool isperiodic = false;
+  if ( argc == 5 ) {
+    std::string periodic(argv[4]);
+    if ( periodic == "1" ) {
+      isperiodic = true;
+    }
+  }
+
   
   // Check mode argument
   if ( mode != "sub" && mode != "super" ) {
@@ -445,8 +463,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Load image file
-  Data data ( infile_name );
+  // Load cubical array
+  Data data ( infile_name, isperiodic );
 
   // Construct filtration, an object that stores an ordering of cells in a complex
   Filtration filtration;

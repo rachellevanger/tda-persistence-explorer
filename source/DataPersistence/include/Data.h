@@ -20,9 +20,24 @@ public:
 
   /// Data
   ///   Construct Data object from file.
+  Data ( std::string const& input_filename ) {
+    assign ( input_filename, false );
+  }
+
+  /// Data
+  ///   Construct Data object from file.
+  ///   Takes optional periodic boolean indicator.
+  Data ( std::string const& input_filename, bool const& isperiodic ) {
+    assign ( input_filename, isperiodic );
+  }
+
+  /// assign
+  ///   Construct Data object from file.
   ///   Notes: If the filename extension looks like an image, it uses CImg to load.
   ///          Otherwise, it uses the `loadData` method
-  Data ( std::string const& input_filename ) {
+  void
+  assign ( std::string const& input_filename, bool const& isperiodic ) {
+    isperiodic_ = isperiodic;
     const auto list_of_image_extensions = { "png", "bmp", "jpeg", "jpg", "gif" };
     // Get filename extension (part after last ".")
     auto ext = input_filename.substr(input_filename.find_last_of(".") + 1);
@@ -158,6 +173,14 @@ public:
     return data_[i];
   }
 
+  /// isperiodic
+  ///   Return boolean flag for whether or not complex is periodic in all dimensions
+  ///   TODO: Change this to a boolean vector for periodicity in each dimension
+  bool
+  isperiodic ( void ) const {
+    return isperiodic_;
+  }
+
   // /// operator ()
   // ///   Given 0 <= x < width() and 0 <= y < height(), 
   // ///   return pixel data at position (x,y)
@@ -178,6 +201,7 @@ public:
 private:
   std::vector<double> data_;
   std::vector<uint64_t> resolution_;
+  bool isperiodic_;
 };
 
 #endif
